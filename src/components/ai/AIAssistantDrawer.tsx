@@ -10,7 +10,13 @@ export const AIAssistantDrawer: React.FC = () => {
     sendAIMessage,
     isAILoading,
     activeBrand,
-    activePage
+    activePage,
+    selectedContent,
+    contentItems,
+    campaigns,
+    ideas,
+    competitors,
+    clearAIConversation
   } = useApp();
 
   const [inputVal, setInputVal] = useState('');
@@ -26,7 +32,7 @@ export const AIAssistantDrawer: React.FC = () => {
   };
 
   const handleQuickPrompt = (prompt: string) => {
-    sendAIMessage(prompt);
+    if (!isAILoading) void sendAIMessage(prompt);
   };
 
   return (
@@ -44,7 +50,7 @@ export const AIAssistantDrawer: React.FC = () => {
                   AI Assistant
                 </h3>
                 <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-[#5268D8]/10 text-[#5268D8] dark:text-[#8292F0] font-semibold">
-                  ● GPT-5
+                  ● GPT Assistant
                 </span>
               </div>
               <p className="text-[10px] font-mono text-[#68717E] dark:text-[#9BA3B2]">
@@ -55,7 +61,8 @@ export const AIAssistantDrawer: React.FC = () => {
 
           <div className="flex items-center gap-1">
             <button
-              onClick={() => handleQuickPrompt('Mulai analisis sesi baru')}
+              onClick={clearAIConversation}
+              disabled={isAILoading}
               className="p-1.5 rounded-[6px] text-[#68717E] hover:text-[#17191F] hover:bg-neutral-100 dark:hover:bg-[#20242D]"
               title="Sesi baru"
             >
@@ -77,20 +84,19 @@ export const AIAssistantDrawer: React.FC = () => {
             KONTEKS AKTIF
           </span>
           <div className="flex items-center gap-1.5 flex-wrap">
-            {['Overview', 'Arunika Coffee', 'Panen Raya Gayo', 'D1 analytics 30 hari', '6 snapshot kompetitor'].map(tag => (
-              <span
-                key={tag}
-                className="px-2 py-0.5 rounded-[4px] bg-neutral-100 dark:bg-[#20242D] text-[10px] font-mono text-[#68717E] dark:text-[#9BA3B2]"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
+            <span className="px-2 py-0.5 rounded-[4px] bg-neutral-100 dark:bg-[#20242D] text-[10px] font-mono text-[#68717E] dark:text-[#9BA3B2]">{activePage}</span>
+            <span className="px-2 py-0.5 rounded-[4px] bg-neutral-100 dark:bg-[#20242D] text-[10px] font-mono text-[#68717E] dark:text-[#9BA3B2]">{activeBrand.name}</span>
+            {selectedContent && <span className="px-2 py-0.5 rounded-[4px] bg-neutral-100 dark:bg-[#20242D] text-[10px] font-mono text-[#68717E] dark:text-[#9BA3B2]">{selectedContent.title}</span>}
+            <span className="px-2 py-0.5 rounded-[4px] bg-neutral-100 dark:bg-[#20242D] text-[10px] font-mono text-[#68717E] dark:text-[#9BA3B2]">{contentItems.filter(item => item.brandId === activeBrand.id).length} konten</span>
+            <span className="px-2 py-0.5 rounded-[4px] bg-neutral-100 dark:bg-[#20242D] text-[10px] font-mono text-[#68717E] dark:text-[#9BA3B2]">{campaigns.filter(item => item.brandId === activeBrand.id).length} campaign</span>
+            <span className="px-2 py-0.5 rounded-[4px] bg-neutral-100 dark:bg-[#20242D] text-[10px] font-mono text-[#68717E] dark:text-[#9BA3B2]">{ideas.filter(item => item.brandId === activeBrand.id).length} ide</span>
+            <span className="px-2 py-0.5 rounded-[4px] bg-neutral-100 dark:bg-[#20242D] text-[10px] font-mono text-[#68717E] dark:text-[#9BA3B2]">{competitors.filter(item => item.brandId === activeBrand.id).length} kompetitor</span>
+          </div>        </div>
       </div>
 
       {/* 2. Messages List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        {!aiMessages.length && <p className="py-10 text-center text-xs text-[#68717E] dark:text-[#9BA3B2]">Tanyakan strategi, ide, campaign, atau evaluasi konten. Jawaban akan memakai konteks brand dan halaman aktif.</p>}
         {aiMessages.map(msg => (
           <div
             key={msg.id}
@@ -140,6 +146,7 @@ export const AIAssistantDrawer: React.FC = () => {
             ].map(sug => (
               <button
                 key={sug}
+                disabled={isAILoading}
                 onClick={() => handleQuickPrompt(sug)}
                 className="px-2.5 py-1 rounded-[6px] bg-white dark:bg-[#20242D] hover:bg-[#EEF2FF] dark:hover:bg-[#252A38] border border-[#E7E9ED] dark:border-[#2E3442] text-[10px] font-mono text-[#5268D8] dark:text-[#8292F0] transition-colors"
               >
