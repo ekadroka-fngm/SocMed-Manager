@@ -20,6 +20,14 @@ export function canTransition(current: ContentStatus, target: ContentStatus): bo
 }
 
 /**
+ * BR-009: Scheduling is only allowed after a user explicitly approves the content.
+ * Do not treat DRAFT, IN_REVIEW, or CHANGES_REQUESTED as implicitly approved.
+ */
+export function canScheduleContent(content: Pick<ContentItem, 'status'>): boolean {
+  return content.status === 'APPROVED';
+}
+
+/**
  * BR-014: Any edit to an approved or scheduled content item immediately
  * invalidates previous approval and returns it to IN_REVIEW.
  */
