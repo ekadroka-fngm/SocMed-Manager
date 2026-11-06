@@ -141,7 +141,7 @@ export interface IdeaItem {
   tone?: string;
   referenceUrl?: string;
   hypothesis?: string;
-  status: 'IDEA' | 'SAVED' | 'CONVERTED' | 'NEW';
+  status: 'IDEA' | 'SAVED' | 'CONVERTED' | 'NEW' | 'ARCHIVED';
   convertedContentId?: string;
   createdAt: string;
 }
