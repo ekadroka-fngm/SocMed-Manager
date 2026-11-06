@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   Plus,
@@ -15,13 +15,14 @@ import {
 import { Brand } from '../../types';
 
 export const BrandsPage: React.FC = () => {
-  const { brands, activeBrand, activeBrandId, switchBrand, createBrand, showToast } = useApp();
+  const { brands, activeBrand, activeBrandId, switchBrand, createBrand, updateBrand, archiveBrand, showToast } = useApp();
   const [activeTab, setActiveTab] = useState<'identitas' | 'positioning' | 'suara' | 'pillars' | 'produk' | 'sosial'>('identitas');
 
   // Modals & dropdowns
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
+  const assetInputRef = useRef<HTMLInputElement>(null);
 
   // Create brand form
   const [newBrandName, setNewBrandName] = useState('');
@@ -49,6 +50,45 @@ export const BrandsPage: React.FC = () => {
     setEditBrandCategory(activeBrand.category);
     setEditBrandDesc(activeBrand.description);
     setIsEditModalOpen(true);
+  };
+
+  const handleSaveBrandEdits = () => {
+    const name = editBrandName.trim();
+    const category = editBrandCategory.trim();
+    if (!name || !category) {
+      showToast('Nama dan kategori brand wajib diisi.');
+      return;
+    }
+    updateBrand(activeBrand.id, {
+      name,
+      category,
+      description: editBrandDesc.trim()
+    });
+    setIsEditModalOpen(false);
+    showToast('Perubahan brand diperbarui di sesi aplikasi ini.');
+  };
+
+  const handleArchiveActiveBrand = () => {
+    if (!window.confirm(`Arsipkan brand "${activeBrand.name}"? Brand tidak akan tampil lagi di daftar aktif.`)) return;
+    const archived = archiveBrand(activeBrand.id);
+    if (archived) showToast('Brand berhasil diarsipkan dari daftar aktif.');
+  };
+
+  const handleAssetSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Pilih file gambar untuk logo brand.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Ukuran logo maksimal 5 MB.');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    updateBrand(activeBrand.id, { logo: previewUrl });
+    showToast('Preview logo diperbarui. Upload permanen ke Cloudflare R2 belum diaktifkan.');
   };
 
   const handleCreateBrandSubmit = (e: React.FormEvent) => {
@@ -169,7 +209,7 @@ export const BrandsPage: React.FC = () => {
                       className="w-7 h-7 rounded-[7px] text-white flex items-center justify-center font-bold text-xs"
                       style={{ backgroundColor: brand.themeColor || '#B85D2A' }}
                     >
-                      {brand.logo}
+                      {brand.logo.startsWith('blob:') ? <img src={brand.logo} alt={`${brand.name} logo`} className="w-full h-full object-cover rounded-[7px]" /> : brand.logo}
                     </div>
                     <div>
                       <h3 className="text-xs font-bold text-[#17191F] dark:text-[#E9EBF0]">
@@ -250,7 +290,7 @@ export const BrandsPage: React.FC = () => {
                 className="w-9 h-9 rounded-[8px] text-white flex items-center justify-center font-bold text-sm"
                 style={{ backgroundColor: activeBrand.themeColor || '#B85D2A' }}
               >
-                {activeBrand.logo}
+                {activeBrand.logo.startsWith('blob:') ? <img src={activeBrand.logo} alt={`${activeBrand.name} logo`} className="w-full h-full object-cover rounded-[8px]" /> : activeBrand.logo}
               </div>
               <div>
                 <h2 className="text-base font-bold font-heading text-[#17191F] dark:text-[#E9EBF0]">
@@ -273,7 +313,7 @@ export const BrandsPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => showToast(`Brand "${activeBrand.name}" sedang aktif dan tidak dapat diarsipkan saat ini.`)}
+                onClick={handleArchiveActiveBrand}
                 className="px-3 py-1 text-xs font-medium rounded-[6px] text-[#DC6470] hover:bg-[#FEE2E2]/30 cursor-pointer"
               >
                 Arsipkan
@@ -443,11 +483,20 @@ export const BrandsPage: React.FC = () => {
                 <div className="w-6 h-6 rounded-[4px] bg-[#EAD8C3]" />
                 <button
                   type="button"
-                  onClick={() => showToast('Manajer aset file dibuka.')}
+                  onClick={() => assetInputRef.current?.click()}
+                  title="Pilih logo brand"
                   className="w-6 h-6 rounded-[4px] border border-dashed border-[#68717E] flex items-center justify-center text-[#68717E] cursor-pointer hover:border-black"
                 >
                   <Upload className="w-3 h-3" />
                 </button>
+                <input
+                  ref={assetInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAssetSelected}
+                  className="hidden"
+                  aria-label="Upload logo brand"
+                />
               </div>
             </div>
           </div>
@@ -684,13 +733,7 @@ export const BrandsPage: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    activeBrand.name = editBrandName;
-                    activeBrand.category = editBrandCategory;
-                    activeBrand.description = editBrandDesc;
-                    setIsEditModalOpen(false);
-                    showToast('Informasi brand berhasil diperbarui.');
-                  }}
+                  onClick={handleSaveBrandEdits}
                   className="px-4 py-1.5 bg-[#5268D8] text-white rounded-xl text-xs font-semibold"
                 >
                   Simpan Perubahan
