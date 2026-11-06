@@ -40,6 +40,7 @@ export interface Workspace {
   name: string;
   plan: 'Private Dual-Seat' | 'Private · 2 members' | string;
   users: User[];
+  timezone?: string;
   createdAt: string;
 }
 
