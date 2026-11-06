@@ -1,3 +1,32 @@
+import React, { useEffect, useState } from 'react';
+import { useApp } from '../../context/AppContext';
+import {
+  ChevronDown,
+  Plus,
+  ExternalLink,
+  Camera,
+  Info,
+  CheckCircle2,
+  X
+} from 'lucide-react';
+
+interface CompetitorRow {
+  id: string;
+  name: string;
+  handle: string;
+  avatar: string;
+  avatarBg?: string;
+  category: string;
+  postPerWeek: string;
+  dominantTheme: string;
+  lastSnapshot: string;
+  status: 'Terpantau' | 'Perlu' | 'Arsip';
+  location: string;
+  profileUrl: string;
+  manualNotes: { date: string; note: string }[];
+  snapshotHistory: { date: string; count: number; tag: string }[];
+}
+
 export const CompetitorsPage: React.FC = () => {
   const { activeBrand, competitors: storedCompetitors, addCompetitor, addCompetitorSnapshot, showToast } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua kategori');
@@ -42,6 +71,7 @@ export const CompetitorsPage: React.FC = () => {
       manualNotes: noteRows,
       snapshotHistory: snapshots.map(snapshot => ({
         date: snapshot.snapshotDate || snapshot.date || 'Tanggal tidak dicatat',
+        count: snapshot.postSnippet ? 1 : 0,
         tag: snapshot.verifiedPublic ? 'Terverifikasi' : 'Manual'
       }))
     };
@@ -57,7 +87,21 @@ export const CompetitorsPage: React.FC = () => {
   const filteredCompetitors = selectedCategory === 'Semua kategori'
     ? competitors
     : competitors.filter(competitor => competitor.category === selectedCategory);
-  const selectedComp = filteredCompetitors.find(competitor => competitor.id === selectedCompId) || filteredCompetitors[0];
+  const selectedComp = filteredCompetitors.find(competitor => competitor.id === selectedCompId) || filteredCompetitors[0] || {
+    id: '',
+    name: '',
+    handle: '',
+    avatar: '',
+    category: '',
+    postPerWeek: 'Belum dicatat',
+    dominantTheme: 'Belum dicatat',
+    lastSnapshot: 'Belum ada',
+    status: 'Perlu' as const,
+    location: '',
+    profileUrl: '',
+    manualNotes: [],
+    snapshotHistory: []
+  };
 
   useEffect(() => {
     if (selectedComp && selectedComp.id !== selectedCompId) setSelectedCompId(selectedComp.id);
@@ -125,7 +169,7 @@ export const CompetitorsPage: React.FC = () => {
             Competitor intelligence
           </h1>
           <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
-            ${competitors.length} kompetitor · ${activeBrand.name} · observasi manual
+            {competitors.length} kompetitor · {activeBrand.name} · observasi manual
           </p>
         </div>
 
@@ -174,7 +218,12 @@ export const CompetitorsPage: React.FC = () => {
             </div>
 
             {/* Desktop Table (hidden on mobile) */}
-            <div className="hidden sm:block overflow-x-auto">
+            {!filteredCompetitors.length && (
+            <p className="py-10 text-center text-xs text-[#68717E]">
+              Belum ada kompetitor untuk brand ini. Tambahkan kompetitor pertama untuk mulai mencatat observasi.
+            </p>
+          )}
+          <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-[#E5E7EB] dark:border-[#272B35] text-[10px] font-mono uppercase text-[#9CA3AF] dark:text-[#6B7280]">
@@ -321,7 +370,7 @@ export const CompetitorsPage: React.FC = () => {
             >
               <span className="truncate">{selectedComp.profileUrl}</span>
               <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-70 group-hover:opacity-100" />
-            </a>
+            </a>}
 
             {/* Catatan Manual Section */}
             <div>
@@ -372,6 +421,7 @@ export const CompetitorsPage: React.FC = () => {
             {/* Snapshot Baru Button */}
             <div className="pt-2">
               <button
+                disabled={!selectedComp.id}
                 onClick={() => setIsSnapshotModalOpen(true)}
                 className="w-full py-2.5 bg-[#5268D8] hover:bg-[#4154B8] text-white rounded-xl text-xs font-medium flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
               >
