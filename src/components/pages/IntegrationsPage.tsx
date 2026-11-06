@@ -40,7 +40,7 @@ export const IntegrationsPage: React.FC = () => {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
 
-  const [accounts, setAccounts] = useState<IntegrationAccount[]>([
+  const [accounts] = useState<IntegrationAccount[]>([
     {
       id: 'ig_arunika',
       name: 'Instagram',
@@ -136,37 +136,21 @@ export const IntegrationsPage: React.FC = () => {
   const selectedAccount =
     accounts.find((a) => a.id === selectedAccountId) || accounts[0];
 
+  const showIntegrationNotice = (message: string) => {
+    setToastMsg(message);
+    window.setTimeout(() => setToastMsg(null), 4000);
+  };
+
   const handleSync = () => {
-    setIsSyncing(true);
-    setTimeout(() => {
-      setIsSyncing(false);
-      setToastMsg(`Sinkronisasi token & metrik ${selectedAccount.name} berhasil.`);
-      setTimeout(() => setToastMsg(null), 3000);
-    }, 800);
+    showIntegrationNotice(`Sync ${selectedAccount.name} belum dijalankan: OAuth dan API platform belum dikonfigurasi. Tidak ada data atau token yang diubah.`);
   };
 
   const handleReauth = () => {
-    setAccounts((prev) =>
-      prev.map((a) =>
-        a.id === selectedAccount.id
-          ? { ...a, status: 'Aktif', tokenExpiresIn: '60 hari' }
-          : a
-      )
-    );
-    setToastMsg(`Otorisasi token ${selectedAccount.name} diperbarui.`);
-    setTimeout(() => setToastMsg(null), 3000);
+    showIntegrationNotice(`Re-authorize ${selectedAccount.name} belum tersedia. Hubungkan OAuth resmi setelah konfigurasi Client ID, Secret, callback URL, dan scopes.`);
   };
 
   const handleDisconnect = () => {
-    setAccounts((prev) =>
-      prev.map((a) =>
-        a.id === selectedAccount.id
-          ? { ...a, status: 'Belum', tokenExpiresIn: '—' }
-          : a
-      )
-    );
-    setToastMsg(`Koneksi ${selectedAccount.name} diputuskan.`);
-    setTimeout(() => setToastMsg(null), 3000);
+    showIntegrationNotice(`Tidak ada token ${selectedAccount.name} yang tersimpan di backend saat ini, jadi tidak ada koneksi yang diputus.`);
   };
 
   return (
@@ -185,7 +169,7 @@ export const IntegrationsPage: React.FC = () => {
             Integrations
           </h1>
           <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
-            5 platform · 4 terhubung · 1 perlu otorisasi · token tersimpan terenkripsi (AES-GCM)
+            5 platform tersedia · OAuth belum dikonfigurasi · akun di bawah hanya data contoh UI
           </p>
         </div>
 
@@ -229,8 +213,7 @@ export const IntegrationsPage: React.FC = () => {
           {/* Add Connection button */}
           <button
             onClick={() => {
-              setToastMsg('Pilih platform OAuth untuk menghubungkan akun baru.');
-              setTimeout(() => setToastMsg(null), 3000);
+              showIntegrationNotice('OAuth belum tersedia. Konfigurasikan credentials dan callback platform sebelum akun bisa dihubungkan.');
             }}
             className="px-3.5 py-1.5 bg-[#5268D8] hover:bg-[#4154B8] text-white rounded-xl text-xs font-medium flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
           >
@@ -238,6 +221,10 @@ export const IntegrationsPage: React.FC = () => {
             <span>Tambah koneksi</span>
           </button>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-[#E4A44A]/40 bg-[#FEF3C7]/40 dark:bg-[#382D1B]/30 px-4 py-3 text-xs text-[#8A5A12] dark:text-[#FBBF24]">
+        Data akun, status token, dan kuota pada halaman ini masih placeholder tampilan. Tombol tidak akan mengubah status palsu atau mengklaim sinkronisasi berhasil sampai OAuth/API resmi disambungkan.
       </div>
 
       {/* Main 2-Column Content */}
