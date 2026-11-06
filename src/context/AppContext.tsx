@@ -142,8 +142,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activePage, setActivePage] = useState<AppPage>('overview');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [workspace] = useState<Workspace>(CURRENT_WORKSPACE);
-  const [currentUser] = useState<User>(CURRENT_WORKSPACE.users[0]);
+  const [workspace, setWorkspace] = useState<Workspace>(CURRENT_WORKSPACE);
+  const [currentUser, setCurrentUser] = useState<User>(CURRENT_WORKSPACE.users[0]);
   
   const [brands, setBrands] = useState<Brand[]>(INITIAL_BRANDS);
   const [activeBrandId, setActiveBrandId] = useState<string>('brd_arunika');
@@ -277,6 +277,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const initializeWorkspaceData = async () => {
       try {
+        const identityResponse = await fetch('/api/v1/me');
+        const identity = await identityResponse.json().catch(() => ({})) as {
+          user?: { id?: string; email?: string; name?: string; role?: string };
+          workspace?: { id?: string; name?: string; timezone?: string };
+          error?: string;
+        };
+        if (!identityResponse.ok || !identity.user || !identity.workspace) {
+          throw new Error(identity.error || 'Identitas workspace belum tersedia. Login Cloudflare Access diperlukan.');
+        }
+        if (cancelled) return;
+
+        const displayName = identity.user.name || identity.user.email || 'Workspace member';
+        setCurrentUser({
+          id: identity.user.id || CURRENT_WORKSPACE.users[0].id,
+          email: identity.user.email || CURRENT_WORKSPACE.users[0].email,
+          name: displayName,
+          role: identity.user.role === 'Editor' ? 'Editor' : 'Owner',
+          avatar: displayName.split(/\\s+/).map(part => part.charAt(0)).join('').slice(0, 2).toUpperCase()
+        });
+        setWorkspace(previous => ({
+          ...previous,
+          id: identity.workspace?.id || previous.id,
+          name: identity.workspace?.name || previous.name,
+          timezone: identity.workspace?.timezone || previous.timezone
+        }));
+
         const response = await fetch('/api/v1/app-state');
         const result = await response.json().catch(() => ({})) as {
           revision?: number;
