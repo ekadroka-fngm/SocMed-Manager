@@ -68,14 +68,16 @@ interface AppContextType {
   campaigns: Campaign[];
   selectedCampaignId: string | null;
   setSelectedCampaignId: (id: string | null) => void;
-  createCampaign: (campaign: Omit<Campaign, 'id' | 'contentItemIds'>) => void;\n  updateCampaign: (campaignId: string, updates: Partial<Campaign>) => void;
+  createCampaign: (campaign: Omit<Campaign, 'id' | 'contentItemIds'>) => void;
+  updateCampaign: (campaignId: string, updates: Partial<Campaign>) => void;
   
   // Content Items & Creative Studio
   contentItems: ContentItem[];
   selectedContentId: string | null;
   selectedContent: ContentItem | null;
   setSelectedContentId: (id: string | null) => void;
-  submitContentForReview: (contentId: string) => boolean;\n  approveContentItem: (contentId: string) => void;
+  submitContentForReview: (contentId: string) => boolean;
+  approveContentItem: (contentId: string) => void;
   requestChangesOnItem: (contentId: string, reason: string) => void;
   updateContentItem: (contentId: string, updates: Partial<ContentItem>, note?: string) => void;
   createContentItem: (item: Partial<ContentItem>) => ContentItem;
