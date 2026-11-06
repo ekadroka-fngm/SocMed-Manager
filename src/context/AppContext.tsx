@@ -5,6 +5,7 @@ import {
   ContentItem,
   IdeaItem,
   Competitor,
+  CompetitorSnapshot,
   SocialIntegration,
   AuditLogItem,
   User,
@@ -96,7 +97,8 @@ interface AppContextType {
   
   // Competitors & Integrations
   competitors: Competitor[];
-  addCompetitor: (comp: Omit<Competitor, 'id' | 'snapshots'>) => void;
+  addCompetitor: (comp: Omit<Competitor, 'id' | 'snapshots'>) => string;
+  addCompetitorSnapshot: (competitorId: string, snapshot: Omit<CompetitorSnapshot, 'id' | 'competitorId'>) => void;
   integrations: SocialIntegration[];
   toggleIntegration: (platform: SocialPlatform) => void;
   syncIntegration: (platform: SocialPlatform) => void;
@@ -582,25 +584,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logAudit('CAMPAIGN_UPDATED', 'CAMPAIGN', campaignId, `Updated campaign "${existing.name}".`);
   };
 
-  const addCompetitor = (compData: Omit<Competitor, 'id' | 'snapshots'>) => {
+  const addCompetitor = (compData: Omit<Competitor, 'id' | 'snapshots'>): string => {
     const newComp: Competitor = {
       ...compData,
-      id: `cmp_${Date.now()}`,
-      snapshots: [
-        {
-          id: `snp_${Date.now()}`,
-          competitorId: `cmp_${Date.now()}`,
-          date: new Date().toISOString().split('T')[0],
-          publicFollowers: '120K',
-          estimatedPostFreq: '1 post / day',
-          topFormat: 'Video Reels',
-          observedTheme: (compData.topPublicThemes && compData.topPublicThemes[0]) || compData.dominantThemes?.[0] || 'Brand messaging',
-          differentiationOpportunity: compData.differentiationAngle || compData.whitespaceOpportunity || 'Diferensiasi kualitas'
-        }
-      ]
+      id: `cmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      snapshots: []
     };
     setCompetitors(prev => [newComp, ...prev]);
-    logAudit('COMPETITOR_ADDED', 'BRAND', newComp.id, `Added competitor observation "${newComp.name}"`);
+    logAudit('COMPETITOR_ADDED', 'BRAND', newComp.id, `Added competitor "${newComp.name}" without fabricated metrics.`);
+    return newComp.id;
+  };
+
+  const addCompetitorSnapshot = (
+    competitorId: string,
+    snapshotData: Omit<CompetitorSnapshot, 'id' | 'competitorId'>
+  ) => {
+    const competitor = competitors.find(item => item.id === competitorId);
+    if (!competitor) {
+      showToast('Kompetitor tidak ditemukan.');
+      return;
+    }
+
+    const snapshot: CompetitorSnapshot = {
+      ...snapshotData,
+      id: `snp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      competitorId
+    };
+    setCompetitors(prev => prev.map(item =>
+      item.id === competitorId
+        ? {
+            ...item,
+            snapshots: [snapshot, ...item.snapshots],
+            lastObservedAt: snapshot.snapshotDate || snapshot.date || new Date().toISOString()
+          }
+        : item
+    ));
+    logAudit('COMPETITOR_SNAPSHOT_ADDED', 'BRAND', competitorId, `Added manual snapshot for "${competitor.name}".`);
+    showToast('Snapshot observasi tersimpan di sesi aplikasi.');
   };
 
   const toggleIntegration = (platform: SocialPlatform) => {
@@ -775,6 +795,7 @@ Our data confirms all linked content follows the **DATA → INSIGHT → STRATEGY
         cancelPublishingJob,
         competitors,
         addCompetitor,
+        addCompetitorSnapshot,
         integrations,
         toggleIntegration,
         syncIntegration,
