@@ -1,0 +1,4 @@
+# Development-only identity bypass. Never enable this in production.
+APP_ENV="development"
+LOCAL_DEV_AUTH="true"
+LOCAL_DEV_EMAIL="owner@local.test"
