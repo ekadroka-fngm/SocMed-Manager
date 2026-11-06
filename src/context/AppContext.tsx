@@ -78,8 +78,8 @@ interface AppContextType {
   selectedContent: ContentItem | null;
   setSelectedContentId: (id: string | null) => void;
   submitContentForReview: (contentId: string) => boolean;
-  approveContentItem: (contentId: string) => void;
-  requestChangesOnItem: (contentId: string, reason: string) => void;
+  approveContentItem: (contentId: string) => boolean;
+  requestChangesOnItem: (contentId: string, reason: string) => boolean;
   updateContentItem: (contentId: string, updates: Partial<ContentItem>, note?: string) => void;
   createContentItem: (item: Partial<ContentItem>) => ContentItem;
   
@@ -498,26 +498,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return true;
   };
 
-  const approveContentItem = (contentId: string) => {
-    setContentItems(prev => prev.map(item => {
-      if (item.id === contentId) {
-        const approved = approveContent(item, currentUser);
-        logAudit('CONTENT_APPROVED', 'CONTENT', contentId, `Approved brief "${item.title}"`);
-        return approved;
-      }
-      return item;
-    }));
+  const approveContentItem = (contentId: string): boolean => {
+    const item = contentItems.find(content => content.id === contentId);
+    if (!item) {
+      showToast('Konten tidak ditemukan. Muat ulang daftar sebelum mencoba lagi.');
+      return false;
+    }
+
+    try {
+      const approved = approveContent(item, currentUser);
+      setContentItems(prev => prev.map(content => content.id === contentId ? approved : content));
+      logAudit('CONTENT_APPROVED', 'CONTENT', contentId, 'Approved brief "' + item.title + '" at version v' + item.currentVersion + '.');
+      return true;
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Konten tidak dapat disetujui pada status saat ini.');
+      return false;
+    }
   };
 
-  const requestChangesOnItem = (contentId: string, reason: string) => {
-    setContentItems(prev => prev.map(item => {
-      if (item.id === contentId) {
-        const revised = requestChanges(item, currentUser, reason);
-        logAudit('CONTENT_CHANGES_REQUESTED', 'CONTENT', contentId, `Requested revisions for "${item.title}": ${reason}`);
-        return revised;
-      }
-      return item;
-    }));
+  const requestChangesOnItem = (contentId: string, reason: string): boolean => {
+    const item = contentItems.find(content => content.id === contentId);
+    if (!item) {
+      showToast('Konten tidak ditemukan. Muat ulang daftar sebelum mencoba lagi.');
+      return false;
+    }
+    if (!reason.trim()) {
+      showToast('Alasan revisi wajib diisi.');
+      return false;
+    }
+
+    try {
+      const revised = requestChanges(item, currentUser, reason.trim());
+      setContentItems(prev => prev.map(content => content.id === contentId ? revised : content));
+      logAudit('CONTENT_CHANGES_REQUESTED', 'CONTENT', contentId, 'Requested revisions for "' + item.title + '": ' + reason.trim());
+      return true;
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Permintaan revisi tidak valid pada status saat ini.');
+      return false;
+    }
   };
 
   const updateContentItem = (contentId: string, updates: Partial<ContentItem>, note: string = 'Copy update') => {
