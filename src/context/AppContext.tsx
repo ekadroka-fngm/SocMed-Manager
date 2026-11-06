@@ -192,7 +192,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     competitors: Competitor[];
     integrations: SocialIntegration[];
     publishingJobs: PublishingJob[];
-    auditLogs: AuditLogItem[];
   };
 
   const [isAppStateReady, setIsAppStateReady] = useState(false);
@@ -209,8 +208,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ideas,
     competitors,
     integrations,
-    publishingJobs,
-    auditLogs
+    publishingJobs
   });
   latestAppStateRef.current = {
     brands,
@@ -219,8 +217,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ideas,
     competitors,
     integrations,
-    publishingJobs,
-    auditLogs
+    publishingJobs
   };
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -269,7 +266,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (Array.isArray(snapshot.competitors)) setCompetitors(snapshot.competitors);
     if (Array.isArray(snapshot.integrations)) setIntegrations(snapshot.integrations);
     if (Array.isArray(snapshot.publishingJobs)) setPublishingJobs(snapshot.publishingJobs);
-    if (Array.isArray(snapshot.auditLogs)) setAuditLogs(snapshot.auditLogs);
   };
 
   useEffect(() => {
@@ -302,6 +298,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           name: identity.workspace?.name || previous.name,
           timezone: identity.workspace?.timezone || previous.timezone
         }));
+
+        const auditResponse = await fetch('/api/v1/audit-logs');
+        const auditResult = await auditResponse.json().catch(() => ({})) as {
+          data?: AuditLogItem[];
+          error?: string;
+        };
+        if (auditResponse.ok && Array.isArray(auditResult.data)) {
+          setAuditLogs(auditResult.data);
+        }
 
         const response = await fetch('/api/v1/app-state');
         const result = await response.json().catch(() => ({})) as {
@@ -433,7 +438,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logAudit = (action: string, entityType: AuditLogItem['entityType'], entityId: string, details: string) => {
     const newLog: AuditLogItem = {
-      id: `aud_${Date.now()}`,
+      id: `aud_${crypto.randomUUID()}`,
       timestamp: new Date().toISOString(),
       userId: currentUser.id,
       userName: currentUser.name,
@@ -442,7 +447,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       entityId,
       details
     };
-    setAuditLogs(prev => [newLog, ...prev]);
+    setAuditLogs(prev => [newLog, ...prev].slice(0, 200));
+    void fetch('/api/v1/audit-logs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action, entityType, entityId, details })
+    }).then(response => {
+      if (!response.ok) console.warn('Audit log was not persisted.', response.status);
+    }).catch(error => {
+      console.warn('Audit log request failed.', error);
+    });
   };
 
   const switchBrand = (brandId: string) => {
