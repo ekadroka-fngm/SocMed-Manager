@@ -15,7 +15,8 @@
     "db:migrate:local": "wrangler d1 migrations apply socmed-manager-db --local",
     "db:seed:local": "wrangler d1 execute socmed-manager-db --local --file=./scripts/seed-local-workspace.sql",
     "db:migrate:remote": "wrangler d1 migrations apply socmed-manager-db --remote",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "test": "tsx --test src/logic/rules.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
