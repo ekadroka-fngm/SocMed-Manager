@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
-  const { workspace, theme, setTheme, showToast } = useApp();
+  const { workspace, theme, setTheme, showToast, auditLogs, navigateTo } = useApp();
   const [activeTab, setActiveTab] = useState<string>('workspace');
   const [workspaceName, setWorkspaceName] = useState(workspace.name);
   const [timezone, setTimezone] = useState(workspace.timezone || 'Asia/Jakarta');
@@ -30,6 +30,7 @@ export const SettingsPage: React.FC = () => {
   const [isSettingsLoading, setIsSettingsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isMobileWorkspaceEditing, setIsMobileWorkspaceEditing] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const savedSettingsRef = useRef({
     workspaceName: workspace.name,
     timezone: workspace.timezone || 'Asia/Jakarta',
@@ -282,30 +283,99 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. Grouped Navigation Links with Chevrons */}
+        {/* 3. Mobile settings navigation */}
         <div className="bg-white dark:bg-[#161922] rounded-2xl border border-[#E5E7EB] dark:border-[#272B35] shadow-xs divide-y divide-[#F1F3F5] dark:divide-[#222630] overflow-hidden">
-          {[
-            { label: 'AI providers', icon: <Sparkles className="w-4 h-4 text-[#5268D8]" />, value: 'GPT · Gemini' },
-            { label: 'Appearance', icon: <Palette className="w-4 h-4 text-[#E4A44A]" />, value: theme === 'light' ? 'Light' : 'Dark' },
-            { label: 'Notifications', icon: <Bell className="w-4 h-4 text-[#21A68A]" />, value: 'Aktif' },
-            { label: 'Security', icon: <Shield className="w-4 h-4 text-[#16A34A]" />, value: '2FA' },
-            { label: 'Audit logs', icon: <Clock className="w-4 h-4 text-[#68717E]" />, value: '1.284' }
-          ].map((item, idx) => (
-            <div
-              key={idx}
-              className="p-4 flex items-center justify-between text-xs cursor-pointer hover:bg-neutral-50 dark:hover:bg-[#1A1D24] transition-colors"
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              type="button"
+              aria-pressed={activeTab === item.id}
+              onClick={() => item.id === 'integrations' ? navigateTo('integrations') : setActiveTab(item.id)}
+              className={`w-full p-4 flex items-center justify-between text-xs text-left transition-colors ${activeTab === item.id ? 'bg-[#EEF2FF] dark:bg-[#22283A]' : 'hover:bg-neutral-50 dark:hover:bg-[#1A1D24]'}`}
             >
-              <div className="flex items-center gap-3">
+              <span className="flex items-center gap-3">
                 {item.icon}
                 <span className="font-semibold text-[#111318] dark:text-[#F3F4F6]">{item.label}</span>
-              </div>
-              <div className="flex items-center gap-2 font-mono text-[11px] text-[#6B7280] dark:text-[#9CA3AF]">
-                <span>{item.value}</span>
-                <span className="text-[#9CA3AF]">›</span>
-              </div>
-            </div>
+              </span>
+              <span className="text-[#9CA3AF]">›</span>
+            </button>
           ))}
         </div>
+
+        {activeTab === 'ai' && (
+          <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#272B35] bg-white dark:bg-[#161922] p-5 space-y-3">
+            <h3 className="text-sm font-bold text-[#111318] dark:text-[#F3F4F6]">AI providers</h3>
+            <p className="text-xs text-[#68717E] dark:text-[#9CA3AF]">AI Assistant ditetapkan menggunakan GPT. Koneksi GPT belum aktif sampai Worker Secret dikonfigurasi.</p>
+            <label className="block text-[10px] font-mono uppercase text-[#68717E]">Background provider</label>
+            <select value={bgGenProvider} onChange={event => setBgGenProvider(event.target.value)} className="w-full rounded-lg border border-[#E5E7EB] dark:border-[#272B35] bg-transparent px-3 py-2 text-xs">
+              <option>Gemini adapter</option>
+              <option>Anthropic adapter</option>
+            </select>
+          </div>
+        )}
+
+        {activeTab === 'notifications' && (
+          <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#272B35] bg-white dark:bg-[#161922] p-5 space-y-3">
+            <h3 className="text-sm font-bold text-[#111318] dark:text-[#F3F4F6]">Notifications</h3>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs text-[#68717E] dark:text-[#9CA3AF]">Notifikasi di aplikasi</span>
+              <button type="button" role="switch" aria-checked={notificationsEnabled} onClick={() => setNotificationsEnabled(value => !value)} className={`w-11 h-6 rounded-full p-0.5 transition-colors ${notificationsEnabled ? 'bg-[#21A68A]' : 'bg-[#9CA3AF]'}`}>
+                <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${notificationsEnabled ? 'translate-x-5' : 'translate-x-0'}`}/>
+              </button>
+            </div>
+            <p className="text-[10px] text-[#9CA3AF]">Preferensi ini berlaku selama sesi browser. Push/email notifications belum dikonfigurasi.</p>
+          </div>
+        )}
+
+        {activeTab === 'appearance' && (
+          <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#272B35] bg-white dark:bg-[#161922] p-5 space-y-4">
+            <h3 className="text-sm font-bold text-[#111318] dark:text-[#F3F4F6]">Appearance</h3>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setTheme('light')} className="px-3 py-2 rounded-lg border border-[#E5E7EB] dark:border-[#272B35] text-xs">Light</button>
+              <button type="button" onClick={() => setTheme('dark')} className="px-3 py-2 rounded-lg border border-[#E5E7EB] dark:border-[#272B35] text-xs">Dark</button>
+              <button type="button" onClick={applySystemTheme} className="px-3 py-2 rounded-lg border border-[#E5E7EB] dark:border-[#272B35] text-xs">System</button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs">Kurangi animasi</span>
+              <button type="button" role="switch" aria-checked={reducedMotion} onClick={() => setReducedMotion(value => !value)} className={`w-11 h-6 rounded-full p-0.5 ${reducedMotion ? 'bg-[#21A68A]' : 'bg-[#9CA3AF]'}`}>
+                <span className={`block w-5 h-5 rounded-full bg-white ${reducedMotion ? 'translate-x-5' : ''}`}/>
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs">Fokus keyboard terlihat</span>
+              <button type="button" role="switch" aria-checked={focusVisible} onClick={() => setFocusVisible(value => !value)} className={`w-11 h-6 rounded-full p-0.5 ${focusVisible ? 'bg-[#21A68A]' : 'bg-[#9CA3AF]'}`}>
+                <span className={`block w-5 h-5 rounded-full bg-white ${focusVisible ? 'translate-x-5' : ''}`}/>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'security' && (
+          <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#272B35] bg-white dark:bg-[#161922] p-5 space-y-3">
+            <h3 className="text-sm font-bold text-[#111318] dark:text-[#F3F4F6]">Security</h3>
+            <p className="text-xs text-[#68717E] dark:text-[#9CA3AF]">Pengelolaan login dan allowlist dilakukan melalui Cloudflare Access.</p>
+            <button type="button" onClick={openCloudflareAccess} className="px-3 py-2 rounded-lg bg-[#5268D8] text-white text-xs font-semibold">Buka Cloudflare Access</button>
+          </div>
+        )}
+
+        {activeTab === 'audit' && (
+          <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#272B35] bg-white dark:bg-[#161922] p-5 space-y-3">
+            <h3 className="text-sm font-bold text-[#111318] dark:text-[#F3F4F6]">Audit logs</h3>
+            {auditLogs.slice(0, 10).length ? auditLogs.slice(0, 10).map(log => (
+              <div key={log.id} className="border-t border-[#F1F3F5] dark:border-[#272B35] pt-2">
+                <p className="text-xs font-semibold text-[#17191F] dark:text-[#E9EBF0]">{log.action}</p>
+                <p className="text-[10px] text-[#68717E] dark:text-[#9CA3AF]">{log.userName} · {new Date(log.timestamp).toLocaleString('id-ID')}</p>
+                <p className="text-[10px] text-[#68717E] dark:text-[#9CA3AF] mt-0.5">{log.details}</p>
+              </div>
+            )) : <p className="text-xs text-[#68717E]">Belum ada aktivitas tercatat.</p>}
+          </div>
+        )}
+
+        {activeTab === 'integrations' && (
+          <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#272B35] bg-white dark:bg-[#161922] p-5">
+            <button type="button" onClick={() => navigateTo('integrations')} className="text-xs font-semibold text-[#5268D8]">Buka Social Integrations</button>
+          </div>
+        )}
       </div>
 
       {/* Desktop Layout with Left Nav and Stacked Settings Cards */}
