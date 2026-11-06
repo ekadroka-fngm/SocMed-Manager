@@ -1,0 +1,1010 @@
+# MASTER DESIGN PROMPT
+## KOMPAS INTELLIGENCE — MULTI-BRAND CONTENT INTELLIGENCE PLATFORM
+
+### 1. ROLE & OBJECTIVE
+
+Act as a Senior Product Designer, Design Systems Architect, and Senior Frontend Engineer specializing in sophisticated SaaS applications.
+
+Your task is to translate the provided visual design references into a fully functional, production-quality web application interface.
+
+The application is called **Kompas Intelligence**, a Multi-Brand Content Intelligence and Campaign Management Platform.
+
+The provided design references are the primary visual source of truth.
+
+Your responsibility is to reproduce the design language, layout architecture, visual hierarchy, component behavior, responsive behavior, and interaction patterns as accurately as possible.
+
+IMPORTANT:
+- Do not treat the references as loose inspiration.
+- Do not redesign the interface based on your personal preferences.
+- Do not introduce unnecessary visual elements.
+- Do not change the established design language.
+- Do not sacrifice visual accuracy for implementation convenience.
+- Preserve the relationship between components, spacing, alignment, proportions, and hierarchy.
+- All screens must feel like parts of one coherent product.
+
+The result must look like a professionally designed, premium SaaS product rather than a generic AI-generated dashboard.
+
+---
+
+### 2. DESIGN PHILOSOPHY
+
+The design philosophy is:
+
+**Minimalist. Analytical. Precise. Functional. Editorial. Intelligent.**
+
+The interface should communicate:
+- Clarity of information.
+- Professionalism.
+- Analytical intelligence.
+- Operational efficiency.
+- Creative flexibility.
+- Ease of navigation.
+
+Design characteristics:
+
+1. Clean and spacious interfaces.
+2. Neutral backgrounds with restrained accent colors.
+3. Strong typographic hierarchy.
+4. Compact but readable information density.
+5. Consistent alignment and grid systems.
+6. Subtle borders instead of excessive shadows.
+7. Carefully structured cards and panels.
+8. Clear distinction between primary and secondary actions.
+9. Minimal decorative elements.
+10. Consistent visual rhythm throughout the application.
+
+Avoid:
+- Excessive gradients.
+- Glassmorphism.
+- Excessive rounded containers.
+- Oversized headings.
+- Unnecessary illustrations.
+- Decorative background patterns.
+- Excessive shadows.
+- Inconsistent card dimensions.
+- Random color combinations.
+- Unnecessary explanatory text.
+- Generic dashboard templates.
+
+---
+
+### 3. DESIGN SYSTEM
+
+Use a centralized design token architecture.
+
+All components must inherit their visual properties from the same design system.
+
+#### 3.1 Light Color Palette
+
+Use the following exact reference colors:
+
+| Token | Hex | Purpose |
+|---|---|---|
+| Canvas | #F7F7F4 | Main application background |
+| Surface | #FFFFFF | Cards and panels |
+| Ink | #17191F | Primary text |
+| Muted | #68717E | Secondary text |
+| Primary | #5268D8 | Primary actions and highlights |
+| Success | #21A68A | Successful states |
+| Warning | #E4A44A | Warnings and review states |
+| Danger | #DC6470 | Errors and critical states |
+| Border | #E7E9ED | Borders and dividers |
+
+#### 3.2 Dark Color Palette
+
+Use the following exact reference colors:
+
+| Token | Hex | Purpose |
+|---|---|---|
+| Canvas | #111318 | Main background |
+| Surface | #1B1E25 | Cards and panels |
+| Elevated | #292E38 | Elevated surfaces |
+| Ink | #E9EBF0 | Primary text |
+| Muted | #9BA3B2 | Secondary text |
+| Primary | #8292F0 | Primary actions |
+
+Dark mode must preserve the same component hierarchy and layout as light mode.
+
+Do not simply invert colors. Each surface must use the appropriate dark palette token.
+
+#### 3.3 Typography System
+
+Use exactly three primary font families:
+
+**Manrope**
+- Page headings.
+- Section headings.
+- KPI values.
+- Important numerical information.
+- Editorial emphasis.
+
+**Inter**
+- Body text.
+- Navigation labels.
+- Form controls.
+- Descriptions.
+- General UI content.
+
+**JetBrains Mono**
+- Timestamps.
+- IDs.
+- Metadata.
+- Metrics.
+- Technical labels.
+- Status information.
+- Small uppercase section identifiers.
+
+Typography rules:
+- Use a strong hierarchy between page titles, section titles, body text, and metadata.
+- Maintain consistent font weights.
+- Use compact tracking for editorial headings.
+- Use monospaced typography for analytical and technical information.
+- Avoid using multiple font families within the same text element.
+- Never use typography as decoration.
+
+#### 3.4 Border Radius
+
+Use a controlled radius scale:
+
+- 6px: Small controls and compact elements.
+- 8px: Inputs and buttons.
+- 12px: Standard cards.
+- 16px: Large panels.
+- 20px: Special elevated or floating surfaces.
+
+Do not randomly introduce other radius values.
+
+#### 3.5 Spacing System
+
+Follow an 8-point spacing scale.
+
+Primary spacing values:
+- 4px
+- 8px
+- 16px
+- 24px
+- 32px
+- 48px
+
+Use 4px only for fine adjustments.
+
+Maintain consistent horizontal and vertical spacing across all pages.
+
+#### 3.6 Borders and Shadows
+
+- Use subtle 1px borders for card separation.
+- Prefer borders over heavy shadows.
+- Use soft shadows only for floating interfaces, overlays, and elevated elements.
+- Avoid unnecessary visual depth.
+- Maintain clear separation between adjacent surfaces.
+
+---
+
+### 4. GLOBAL APPLICATION LAYOUT
+
+The desktop application consists of three major regions:
+
+1. Persistent left navigation sidebar.
+2. Main application workspace.
+3. Contextual floating interface layer.
+
+#### 4.1 Desktop Sidebar
+
+The sidebar is a persistent navigation structure.
+
+It contains:
+
+**Brand identity**
+- Application icon.
+- Product name.
+- Workspace identity.
+
+**Workspace selector**
+- Workspace name.
+- Workspace privacy.
+- Number of members.
+
+**Active Brand Selector**
+- Brand icon.
+- Brand name.
+- Industry/category.
+- Campaign count.
+- Dropdown interaction.
+
+**Workspace Navigation**
+- Overview.
+- Brands.
+- Intelligence.
+- Campaigns.
+- Idea Lab.
+- Creative Studio.
+- Content Calendar.
+- Analytics.
+
+**Management Navigation**
+- Publishing.
+- Competitors.
+- Integrations.
+- Settings.
+
+**Bottom Section**
+- Light/Dark mode switch.
+- Publishing queue status.
+- Next scheduled publishing information.
+- User profile.
+- Account access information.
+
+Sidebar design requirements:
+- Fixed vertical layout.
+- Consistent icon dimensions.
+- Consistent navigation row heights.
+- Clear active navigation indicator.
+- Subtle active-state background.
+- Proper spacing between navigation groups.
+- Bottom account section anchored to the bottom.
+- No unnecessary descriptions below menu labels.
+
+#### 4.2 Main Workspace
+
+The main workspace must maintain a consistent structure.
+
+Top section:
+- Breadcrumb navigation.
+- Global search.
+- Notifications.
+- Help or information access.
+- User avatar.
+
+Page section:
+- Page title.
+- Contextual description or metadata.
+- Page-specific actions.
+- Filters and selectors.
+
+Content section:
+- Responsive grid.
+- Consistent card dimensions.
+- Logical information grouping.
+- Clear visual hierarchy.
+
+Do not introduce different header architectures on different pages unless explicitly required by the reference.
+
+---
+
+### 5. NAVIGATION & QUICK ACCESS
+
+#### 5.1 Navigation Behavior
+
+Navigation must support:
+- Desktop persistent sidebar.
+- Tablet compact sidebar.
+- Mobile navigation drawer.
+- Active page indication.
+- Workspace switching.
+- Brand switching.
+
+All navigation interactions must be functional.
+
+#### 5.2 Gooey Quick Access
+
+Implement the floating Gooey Quick Access button.
+
+Reference behavior:
+- Floating circular button.
+- Positioned at the bottom-right.
+- Opens a radial or vertically distributed quick-action menu.
+- Smooth morphing transition.
+- Clear close state.
+- No obstruction of important content.
+
+Quick access options:
+- AI Assistant.
+- New Idea.
+- New Campaign.
+- New Content.
+- Schedule.
+- Navigation.
+
+Animation requirements:
+- Smooth expansion.
+- Natural staggered appearance.
+- Consistent motion timing.
+- Smooth reverse animation.
+- Keyboard accessibility.
+- Escape key closes the menu.
+- Outside click closes the menu.
+
+The interaction must feel lightweight and intuitive.
+
+#### 5.3 AI Assistant
+
+The AI Assistant is a floating contextual interface.
+
+Reference structure:
+- Floating panel on the right side.
+- Header containing assistant identity and model information.
+- Contextual information section.
+- Conversation area.
+- Suggested follow-up prompts.
+- Message input.
+- Send button.
+- Minimize and close controls.
+
+Critical behavior:
+
+The assistant must understand the current application context.
+
+For example:
+- Overview: Analyze overall performance.
+- Brands: Discuss brand performance and positioning.
+- Intelligence: Discuss content intelligence and findings.
+- Campaigns: Analyze campaign performance.
+- Idea Lab: Generate and refine ideas.
+- Creative Studio: Improve the current creative brief.
+- Calendar: Analyze publishing schedules.
+- Analytics: Interpret performance metrics.
+- Competitors: Analyze competitor activities.
+
+The AI panel must not visually dominate the application.
+
+---
+
+### 6. PAGE-BY-PAGE DESIGN IMPLEMENTATION
+
+Implement every page using its corresponding reference image.
+
+Do not merge pages into one generic dashboard.
+
+#### 6.1 Overview
+
+Purpose: Provide a centralized overview of the entire content operation.
+
+Components:
+- Page heading.
+- Date-range selector.
+- Brand filter.
+- New content action.
+- KPI summary cards.
+- Performance chart.
+- AI Insights panel.
+- Content pipeline.
+- Pending approvals.
+- Publishing summary.
+
+KPI examples:
+- Reach.
+- Impressions.
+- Views.
+- Engagement.
+- Followers.
+
+Design requirements:
+- KPI values must be visually dominant.
+- Percentage changes must use semantic colors.
+- Charts must remain visually clean.
+- AI Insights must be visually distinct without dominating the page.
+- Pipeline must display content stages and quantities.
+- Approval items must have clear action buttons.
+
+#### 6.2 Brands
+
+Purpose: Manage multiple brands within one workspace.
+
+Components:
+- Brand overview.
+- Brand identity.
+- Brand category.
+- Connected platforms.
+- Brand metrics.
+- Brand descriptions.
+- Brand configuration.
+- Campaign association.
+
+Maintain clear visual distinction between brand cards and brand details.
+
+#### 6.3 Intelligence
+
+Purpose: Present analytical findings and content intelligence.
+
+Components:
+- Intelligence overview.
+- Content performance indicators.
+- Pattern analysis.
+- Audience insights.
+- Content opportunity analysis.
+- Strategic recommendations.
+- Performance comparison.
+
+Use analytical visualizations, progress indicators, structured metrics, and clear data hierarchy.
+
+#### 6.4 Campaigns
+
+Purpose: Manage campaign planning and execution.
+
+Components:
+- Campaign list.
+- Campaign status.
+- Campaign timeline.
+- Campaign progress.
+- Content distribution.
+- Campaign objectives.
+- Platform allocation.
+- Performance indicators.
+
+Campaign information should be easy to scan.
+
+Use timelines and structured progress indicators rather than excessive descriptive cards.
+
+#### 6.5 Idea Lab
+
+Purpose: Generate, organize, evaluate, and prioritize content ideas.
+
+Components:
+- Idea generation interface.
+- Idea cards.
+- Content categories.
+- Funnel classification.
+- Content formats.
+- Priority indicators.
+- Idea status.
+- Content brief conversion.
+
+Support TOFU, MOFU, and BOFU classifications.
+
+Maintain a clear distinction between generated ideas, saved ideas, and ideas converted into briefs.
+
+#### 6.6 Creative Studio
+
+Purpose: Create and manage content briefs and creative production.
+
+This page requires a structured multi-column layout.
+
+Left panel:
+- Content brief checklist.
+- Completion indicators.
+- Brief sections.
+- Source idea information.
+
+Main panel:
+- Content title.
+- Content metadata.
+- Hook.
+- Storytelling flow.
+- Main message.
+- CTA.
+- Caption.
+- Hashtags.
+- References.
+
+Right panel:
+- Platform preview.
+- Content format selector.
+- Version history.
+- Review status.
+
+The content editor must remain the visual focus.
+
+The platform preview should accurately represent the selected content format.
+
+Include:
+- Save version.
+- Version comparison.
+- Submit for review.
+- Approval status.
+
+#### 6.7 Content Calendar
+
+Purpose: Manage content scheduling.
+
+Components:
+- Calendar header.
+- Date navigation.
+- Calendar view selector.
+- Platform filters.
+- Brand filters.
+- Scheduled content.
+- Content status indicators.
+- Publishing timeline.
+
+Use clearly differentiated content cards.
+
+Avoid overcrowding calendar cells.
+
+Provide daily, weekly, and monthly views where appropriate.
+
+#### 6.8 Analytics
+
+Purpose: Present measurable performance data.
+
+Components:
+- Date filters.
+- Brand filters.
+- Platform filters.
+- KPI cards.
+- Performance tables.
+- Trend charts.
+- Engagement analysis.
+- Content comparison.
+- Audience metrics.
+
+Use consistent analytical visualization patterns.
+
+Make numerical data easy to compare.
+
+#### 6.9 Publishing
+
+Purpose: Manage publishing operations.
+
+Components:
+- Publishing overview.
+- Publishing queue.
+- Scheduled content.
+- Published content.
+- Failed content.
+- Platform status.
+- Publishing history.
+
+Status vocabulary:
+- Approved.
+- Scheduled.
+- In Review.
+- Failed.
+- Published.
+- Queued.
+- Draft.
+- Cancelled.
+
+All publishing operations must clearly distinguish between approved content and content that still requires approval.
+
+#### 6.10 Competitors
+
+Purpose: Monitor and analyze competitor content.
+
+Components:
+- Competitor list.
+- Competitor profiles.
+- Social platform information.
+- Content performance.
+- Content comparison.
+- Engagement indicators.
+- Competitor activity.
+- Analytical findings.
+
+Prioritize structured comparison and data readability.
+
+#### 6.11 Integrations
+
+Purpose: Manage external platform connections.
+
+Include:
+- Facebook.
+- Instagram.
+- TikTok.
+- YouTube.
+- Pinterest.
+
+Each integration should display:
+- Platform icon.
+- Platform name.
+- Connection status.
+- Connected account.
+- Last synchronization.
+- Available actions.
+
+Use clear visual states for connected, disconnected, expired, and error conditions.
+
+#### 6.12 Settings
+
+Purpose: Centralized application configuration.
+
+Include:
+- General settings.
+- Workspace settings.
+- Account settings.
+- User permissions.
+- Brand preferences.
+- AI configuration.
+- Publishing preferences.
+- Notification preferences.
+- Appearance settings.
+
+Use structured settings sections with clear labels and compact controls.
+
+---
+
+### 7. RESPONSIVE DESIGN
+
+The application must support desktop, tablet, and mobile.
+
+The provided desktop and mobile references must be treated as separate layout specifications, not simply scaled versions of each other.
+
+#### 7.1 Desktop
+
+- Persistent sidebar.
+- Full workspace layout.
+- Multi-column content.
+- Contextual AI panel.
+- Full analytical charts.
+- Comfortable information density.
+
+#### 7.2 Tablet
+
+- Compact navigation.
+- Reduced horizontal spacing.
+- Adaptive card grids.
+- Reorganized panels.
+- Preserved information hierarchy.
+
+#### 7.3 Mobile
+
+Use a mobile-first adaptive architecture.
+
+Reference behavior:
+- Top navigation header.
+- Drawer navigation.
+- Page title and active brand.
+- Compact search access.
+- Stacked content cards.
+- Touch-friendly controls.
+- Floating quick access.
+
+Mobile requirements:
+- No horizontal overflow.
+- No desktop sidebar occupying permanent screen space.
+- No forced desktop multi-column layout.
+- Important information must remain visible.
+- Secondary information may be moved into expandable sections.
+- Tables should transform into readable compact layouts when necessary.
+- Filters should use a bottom sheet or dedicated filter drawer.
+- AI Assistant must adapt to the mobile viewport.
+- Floating controls must not obstruct primary actions.
+
+Implement dedicated mobile behavior for:
+- Overview.
+- Brands.
+- Intelligence.
+- Campaigns.
+- Idea Lab.
+- Creative Studio.
+- Content Calendar.
+- Analytics.
+- Publishing.
+- Competitors.
+- Integrations.
+- Settings.
+- Navigation drawer.
+- Quick Access.
+- Approval workflow.
+- Filter sheet.
+
+---
+
+### 8. GLOBAL UI STATES
+
+Every major component must support four global states.
+
+**Loading**
+- Use skeleton placeholders.
+- Preserve the final component dimensions.
+- Avoid layout shifts.
+
+**Empty**
+- Use simple icons.
+- Provide concise contextual messages.
+- Provide a relevant primary action.
+
+**Error**
+- Show a clear error message.
+- Use semantic danger color.
+- Provide retry functionality where appropriate.
+
+**Permission**
+- Show a lock or permission indicator.
+- Explain the access restriction briefly.
+- Provide an appropriate next action when possible.
+
+These states must follow the design system.
+
+---
+
+### 9. COMPONENT DESIGN RULES
+
+Create reusable components for:
+
+- Buttons.
+- Inputs.
+- Selectors.
+- Search fields.
+- Date pickers.
+- Filter controls.
+- Status badges.
+- KPI cards.
+- Charts.
+- Data tables.
+- Content cards.
+- Brand cards.
+- Campaign cards.
+- Navigation items.
+- Dropdown menus.
+- Modal dialogs.
+- Drawer panels.
+- Bottom sheets.
+- Tooltips.
+- Toast notifications.
+- AI Assistant.
+- Quick Access.
+
+Component consistency is mandatory.
+
+A component must look and behave consistently wherever it appears.
+
+#### Button hierarchy
+
+Primary:
+- Solid primary background.
+- High visual priority.
+- Used for the main action.
+
+Secondary:
+- Neutral background or border.
+- Used for supporting actions.
+
+Tertiary:
+- Text-based action.
+- Used for low-priority interactions.
+
+Danger:
+- Semantic danger styling.
+- Used for destructive actions.
+
+#### Status badges
+
+Use compact pill-shaped status indicators.
+
+Use semantic colors consistently.
+
+Avoid oversized status badges.
+
+---
+
+### 10. INTERACTION & MOTION DESIGN
+
+All interactions must feel polished and deliberate.
+
+Motion principles:
+- Smooth.
+- Subtle.
+- Predictable.
+- Responsive.
+- Purposeful.
+
+Implement:
+- Hover states.
+- Active states.
+- Focus states.
+- Loading feedback.
+- Dropdown transitions.
+- Modal transitions.
+- Drawer transitions.
+- Quick Access morphing.
+- AI Assistant opening and closing.
+- Tab switching.
+- Filter interactions.
+- Theme transitions.
+
+Avoid excessive animation.
+
+Animation must never interfere with usability.
+
+Respect reduced-motion accessibility preferences.
+
+---
+
+### 11. ALIGNMENT & VISUAL HIERARCHY
+
+This is one of the highest-priority requirements.
+
+Follow professional graphic-design alignment principles.
+
+Rules:
+
+1. All page headings must follow consistent horizontal alignment.
+2. All content panels must follow the same grid system.
+3. Related labels and values must have consistent alignment.
+4. Cards within the same group must share consistent spacing.
+5. Text alignment must reflect the information hierarchy.
+6. Metadata must remain visually secondary.
+7. Numerical information must have clear visual priority.
+8. Section headings must align with their corresponding content.
+9. Buttons must align logically with the component they control.
+10. Avoid arbitrary positioning and inconsistent margins.
+
+Never fix alignment issues by introducing random padding values.
+
+Use shared layout tokens and reusable grid structures.
+
+---
+
+### 12. ACCESSIBILITY & USABILITY
+
+Ensure:
+- Keyboard navigation.
+- Visible focus indicators.
+- Semantic HTML.
+- Accessible labels.
+- Appropriate color contrast.
+- Touch-friendly controls.
+- Screen-reader-friendly interactions.
+- Consistent keyboard behavior.
+
+All interactive elements must have a meaningful function.
+
+Do not create decorative controls that appear interactive but do nothing.
+
+---
+
+### 13. TECHNICAL IMPLEMENTATION RULES
+
+Implement the interface using reusable components and a centralized design system.
+
+Requirements:
+
+- Use design tokens for all visual properties.
+- Use a consistent spacing scale.
+- Avoid duplicated component implementations.
+- Keep page layouts modular.
+- Separate application logic from presentation.
+- Use responsive layout primitives.
+- Maintain predictable component behavior.
+- Ensure state consistency across pages.
+- Avoid unnecessary dependencies.
+- Do not introduce local-storage-based application persistence.
+- Support a cloud-based application architecture.
+
+If the existing application already has an established technical architecture, preserve it unless a change is explicitly necessary.
+
+Do not replace working backend functionality with mock implementations.
+
+If data is not yet connected, use clearly identifiable mock data while preserving the intended interface and data structure.
+
+---
+
+### 14. DESIGN REFERENCE INTERPRETATION
+
+The supplied reference files include:
+
+**Core Design System**
+- Design system.png
+- Sidebar.png
+
+**Desktop Screens**
+- Overview.png
+- Brands.png
+- Intelligence.png
+- Campaigns.png
+- Idea Lab.png
+- Creative Studio.png
+- Content Calendar.png
+- Analytics.png
+- Publishing.png
+- Competitors.png
+- Integrations.png
+- Settings.png
+
+**Mobile Screens**
+- Mobile Overview.png
+- Mobile Drawer.png
+- Mobile Brands.png
+- Mobile Intelligence.png
+- Mobile Campaigns.png
+- Mobile Idea Lab.png
+- Mobile Studio.png
+- Mobile Approval.png
+- Mobile Calendar.png
+- Mobile Analytics.png
+- Mobile Filter Sheet.png
+- Mobile Quick Access.png
+- Mobile Approval Quick Access.png
+- Mobile Competitors.png
+- Mobile Publishing.png
+- Mobile Integrations.png
+- Mobile Settings.png
+
+**Additional Reference**
+- Tablet Overview.png
+- AI Assistant & Quick Access.png
+
+Treat these references as a unified design specification.
+
+When a particular component appears in multiple screenshots, compare the references and identify the shared design rules.
+
+If a desktop and mobile reference differ structurally, follow the appropriate device-specific design.
+
+Do not force one layout onto every screen.
+
+---
+
+### 15. IMPLEMENTATION WORKFLOW
+
+Follow this sequence:
+
+**PHASE 1 — DESIGN AUDIT**
+- Inspect every reference image.
+- Identify common design patterns.
+- Extract reusable components.
+- Establish layout rules.
+- Establish typography and spacing hierarchy.
+
+**PHASE 2 — DESIGN SYSTEM**
+- Implement color tokens.
+- Implement typography tokens.
+- Implement radius and spacing scales.
+- Implement buttons and controls.
+- Implement reusable cards and panels.
+- Implement light and dark themes.
+
+**PHASE 3 — APPLICATION SHELL**
+- Build the sidebar.
+- Build workspace header.
+- Build brand selector.
+- Build navigation.
+- Build responsive application shell.
+- Build quick access.
+
+**PHASE 4 — PAGE IMPLEMENTATION**
+Implement all 12 primary application pages.
+
+Ensure each page follows its corresponding reference.
+
+**PHASE 5 — MOBILE ADAPTATION**
+Implement dedicated responsive behavior for all mobile references.
+
+**PHASE 6 — INTERACTION**
+Implement functional navigation, menus, filters, forms, tabs, drawers, quick access, and assistant interactions.
+
+**PHASE 7 — VISUAL QA**
+Compare the implementation against the supplied reference images.
+
+Check:
+- Alignment.
+- Spacing.
+- Typography.
+- Color accuracy.
+- Component proportions.
+- Information hierarchy.
+- Responsive behavior.
+- Interaction consistency.
+
+Fix deviations before considering the work complete.
+
+---
+
+### 16. FINAL QUALITY STANDARD
+
+The final implementation must satisfy these conditions:
+
+- The interface visually resembles the supplied references.
+- The design system is consistent across all pages.
+- All pages use shared components.
+- Desktop and mobile layouts are intentionally adapted.
+- Light and dark themes work consistently.
+- All interactive controls have functional behavior.
+- No unnecessary visual elements have been introduced.
+- The interface maintains professional information hierarchy.
+- No horizontal overflow exists on mobile.
+- No inconsistent spacing or arbitrary alignment exists.
+- The application feels like one coherent premium SaaS product.
+
+**FINAL INSTRUCTION:**
+
+Prioritize visual fidelity, structural consistency, usability, and functional implementation.
+
+Do not simplify the reference designs into generic dashboard layouts.
+
+Do not redesign components without a clear technical reason.
+
+Do not skip any referenced page.
+
+Do not consider the task complete merely because the pages render.
+
+The task is complete only when the entire application consistently reflects the visual language, layout architecture, and interaction principles of the provided design references.

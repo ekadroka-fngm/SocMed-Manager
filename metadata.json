@@ -1,0 +1,6 @@
+{
+  "name": "Kompas Intelligence",
+  "description": "Multi-Brand Content Intelligence Platform & Private Creative Intelligence & Campaign Management Workspace",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
