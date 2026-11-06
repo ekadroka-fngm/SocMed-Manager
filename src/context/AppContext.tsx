@@ -24,7 +24,7 @@ import {
   INITIAL_INTEGRATIONS,
   INITIAL_AUDIT_LOGS
 } from '../data/mockData';
-import { approveContent, canScheduleContent, handleContentEdit, requestChanges } from '../logic/contentStateMachine';
+import { approveContent, canScheduleContent, canTransition, handleContentEdit, requestChanges } from '../logic/contentStateMachine';
 import { createPublishingJob } from '../logic/publishingRules';
 
 export type AppPage = 
@@ -68,14 +68,14 @@ interface AppContextType {
   campaigns: Campaign[];
   selectedCampaignId: string | null;
   setSelectedCampaignId: (id: string | null) => void;
-  createCampaign: (campaign: Omit<Campaign, 'id' | 'contentItemIds'>) => void;
+  createCampaign: (campaign: Omit<Campaign, 'id' | 'contentItemIds'>) => void;\n  updateCampaign: (campaignId: string, updates: Partial<Campaign>) => void;
   
   // Content Items & Creative Studio
   contentItems: ContentItem[];
   selectedContentId: string | null;
   selectedContent: ContentItem | null;
   setSelectedContentId: (id: string | null) => void;
-  approveContentItem: (contentId: string) => void;
+  submitContentForReview: (contentId: string) => boolean;\n  approveContentItem: (contentId: string) => void;
   requestChangesOnItem: (contentId: string, reason: string) => void;
   updateContentItem: (contentId: string, updates: Partial<ContentItem>, note?: string) => void;
   createContentItem: (item: Partial<ContentItem>) => ContentItem;
@@ -254,6 +254,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Content Actions
+  const submitContentForReview = (contentId: string): boolean => {
+    const item = contentItems.find(content => content.id === contentId);
+    if (!item) {
+      showToast('Konten tidak ditemukan.');
+      return false;
+    }
+    if (!canTransition(item.status, 'IN_REVIEW')) {
+      showToast(`Konten berstatus ${item.status} tidak bisa dikirim ke review.`);
+      return false;
+    }
+
+    setContentItems(prev => prev.map(content =>
+      content.id === contentId
+        ? { ...content, status: 'IN_REVIEW' }
+        : content
+    ));
+    logAudit('CONTENT_SUBMITTED_FOR_REVIEW', 'CONTENT', contentId, `Submitted "${item.title}" for review.`);
+    showToast('Konten berhasil dikirim untuk review.');
+    return true;
+  };
+
   const approveContentItem = (contentId: string) => {
     setContentItems(prev => prev.map(item => {
       if (item.id === contentId) {
@@ -519,12 +540,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const createCampaign = (campaignData: Omit<Campaign, 'id' | 'contentItemIds'>) => {
     const newCamp: Campaign = {
       ...campaignData,
-      id: `cmp_${Date.now()}`,
+      id: `cmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       contentItemIds: []
     };
     setCampaigns(prev => [...prev, newCamp]);
+    setSelectedCampaignId(newCamp.id);
     setBrands(prev => prev.map(b => b.id === campaignData.brandId ? { ...b, campaignCount: b.campaignCount + 1 } : b));
     logAudit('CAMPAIGN_CREATED', 'CAMPAIGN', newCamp.id, `Created campaign "${newCamp.name}"`);
+  };
+
+  const updateCampaign = (campaignId: string, updates: Partial<Campaign>) => {
+    const existing = campaigns.find(campaign => campaign.id === campaignId);
+    if (!existing) {
+      showToast('Campaign tidak ditemukan.');
+      return;
+    }
+    setCampaigns(prev => prev.map(campaign =>
+      campaign.id === campaignId ? { ...campaign, ...updates } : campaign
+    ));
+    logAudit('CAMPAIGN_UPDATED', 'CAMPAIGN', campaignId, `Updated campaign "${existing.name}".`);
   };
 
   const addCompetitor = (compData: Omit<Competitor, 'id' | 'snapshots'>) => {
