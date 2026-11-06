@@ -25,13 +25,17 @@ Perintah `npm run dev` akan:
 
 Buka `http://localhost:3000`.
 
-Vite meneruskan request `/api/*` ke Worker. Identity bypass hanya tersedia saat `APP_ENV=development` dan `LOCAL_DEV_AUTH=true`; jangan pernah mengaktifkan flag ini pada deployment.
+Vite meneruskan request `/api/*` ke Worker. Identity bypass hanya tersedia saat `APP_ENV=development` dan `LOCAL_DEV_AUTH=true`; jangan pernah mengaktifkan flag ini pada deployment. Data workspace pertama kali mengisi D1 dari starter dataset, lalu setiap perubahan disimpan sebagai snapshot berversi. Audit log disimpan terpisah agar tidak dapat diedit sebagai bagian snapshot.
 
 Endpoint untuk pengecekan:
 - `GET /api/health`
 - `GET /api/v1/me`
 - `GET /api/v1/workspace`
 - `GET /api/v1/brands`
+- `GET /api/v1/app-state` dan `PUT /api/v1/app-state`
+- `GET /api/v1/audit-logs` dan `POST /api/v1/audit-logs`
+- `GET /api/v1/settings` dan `PUT /api/v1/settings`
+- `POST /api/v1/assistant`
 
 Untuk menguji sebagai editor, ubah `LOCAL_DEV_EMAIL=editor@local.test` di file `.dev.vars`, lalu restart Worker.
 
@@ -82,6 +86,16 @@ Masukkan Team domain dalam bentuk `https://<team-name>.cloudflareaccess.com` dan
 
 Pastikan Access application dan policy sudah aktif sebelum membuka endpoint API remote.
 
+## GPT Assistant
+
+Tambahkan API key sebagai Worker secret. Jangan menaruh key di frontend, file `.env` yang di-commit, maupun `wrangler.jsonc`:
+
+```bash
+npx wrangler secret put OPENAI_API_KEY
+```
+
+Opsional: atur variable Worker `OPENAI_MODEL` untuk memilih model GPT. Default saat ini `gpt-6-luna`; key dan seluruh request ke OpenAI diproses melalui Worker.
+
 ## Deploy
 
 Setelah database ID, schema, workspace members, dan Access siap:
@@ -92,7 +106,7 @@ npm run deploy
 
 Worker akan men-deploy API dan isi folder `dist` dalam satu deployment.
 
-## API yang tersedia pada fondasi awal
+## API yang tersedia
 
 | Method | Endpoint | Kegunaan |
 |---|---|---|
@@ -101,12 +115,18 @@ Worker akan men-deploy API dan isi folder `dist` dalam satu deployment.
 | GET | `/api/v1/workspace` | Workspace aktif |
 | GET | `/api/v1/brands` | Membaca brand dalam workspace |
 | POST | `/api/v1/brands` | Membuat brand dan audit log |
+| GET/PUT | `/api/v1/app-state` | Membaca dan menyimpan snapshot data workspace dengan revision check |
+| GET/POST | `/api/v1/audit-logs` | Membaca dan menambah audit event di server |
+| GET/PUT | `/api/v1/settings` | Membaca dan menyimpan preferensi workspace |
+| POST | `/api/v1/assistant` | Mengirim prompt ke GPT melalui OpenAI Responses API |
 
 Semua endpoint `/api/v1/*` membutuhkan identitas yang lolos Cloudflare Access dan anggota workspace aktif. Data selalu dibatasi dengan `workspace_id`.
 
 ## Batas implementasi saat ini
 
-- API dan schema D1 sudah disiapkan, tetapi halaman frontend masih menggunakan AppContext/mock data. Integrasi halaman ke endpoint akan dilakukan bertahap.
-- OAuth media sosial, penyimpanan token terenkripsi, publishing jobs, dan background queues belum aktif.
+- Data workspace utama dan audit log sudah tersimpan di D1. Snapshot workspace menggunakan satu record JSON berversi, bukan tabel CRUD terpisah per entitas; konflik revisi memuat ulang data server.
+- OAuth media sosial, penyimpanan token terenkripsi, background publishing worker, dan antrean publikasi terjadwal belum aktif. Status QUEUED hanya berarti job tersimpan di D1.
+- Analytics platform dan automatic competitor monitoring belum aktif.
+- Upload logo permanen ke Cloudflare R2 belum aktif.
 - Placeholder D1 ID harus diganti sebelum remote migrations/deploy.
 - `package-lock.json` sudah di-commit. Gunakan `npm ci` agar versi dependency lokal sama dengan CI.
