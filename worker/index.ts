@@ -399,6 +399,85 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     });
   }
 
+  if (url.pathname === '/api/v1/app-state' && request.method === 'GET') {
+    const result = await env.DB
+      .prepare('SELECT revision, state_json FROM workspace_app_state WHERE workspace_id = ? LIMIT 1')
+      .bind(member.workspace_id)
+      .first<{ revision: number; state_json: string }>();
+
+    if (!result) return json({ revision: 0, state: null });
+
+    let state: unknown;
+    try {
+      state = JSON.parse(result.state_json);
+    } catch {
+      throw new ApiError(500, 'Data workspace tidak dapat dibaca. Hubungi administrator.');
+    }
+
+    return json({ revision: result.revision, state });
+  }
+
+  if (url.pathname === '/api/v1/app-state' && request.method === 'PUT') {
+    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const expectedRevision = body?.expectedRevision;
+    const state = body?.state;
+
+    if (!Number.isSafeInteger(expectedRevision) || Number(expectedRevision) < 0) {
+      throw new ApiError(400, 'Versi data workspace tidak valid. Muat ulang aplikasi.');
+    }
+    if (!state || typeof state !== 'object' || Array.isArray(state)) {
+      throw new ApiError(400, 'Format data workspace tidak valid.');
+    }
+
+    const collections = [
+      'brands', 'campaigns', 'contentItems', 'ideas',
+      'competitors', 'integrations', 'publishingJobs', 'auditLogs'
+    ];
+    const snapshot = state as Record<string, unknown>;
+    for (const key of collections) {
+      if (!Array.isArray(snapshot[key])) {
+        throw new ApiError(400, `Data ${key} tidak valid.`);
+      }
+    }
+
+    const serialized = JSON.stringify({
+      brands: snapshot.brands,
+      campaigns: snapshot.campaigns,
+      contentItems: snapshot.contentItems,
+      ideas: snapshot.ideas,
+      competitors: snapshot.competitors,
+      integrations: snapshot.integrations,
+      publishingJobs: snapshot.publishingJobs,
+      auditLogs: snapshot.auditLogs
+    });
+
+    if (serialized.length > 1200000) {
+      throw new ApiError(413, 'Data workspace terlalu besar untuk disimpan. Arsipkan data lama atau hubungi administrator.');
+    }
+
+    const revision = Number(expectedRevision);
+    const write = revision === 0
+      ? await env.DB.prepare(
+          `INSERT OR IGNORE INTO workspace_app_state
+            (workspace_id, revision, state_json, updated_by_member_id)
+           VALUES (?, 1, ?, ?)`
+        ).bind(member.workspace_id, serialized, member.id).run()
+      : await env.DB.prepare(
+          `UPDATE workspace_app_state
+           SET revision = revision + 1,
+               state_json = ?,
+               updated_by_member_id = ?,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE workspace_id = ? AND revision = ?`
+        ).bind(serialized, member.id, member.workspace_id, revision).run();
+
+    if (!write.meta?.changes) {
+      throw new ApiError(409, 'Data workspace sudah diperbarui dari sesi lain. Data terbaru sedang dimuat ulang.');
+    }
+
+    return json({ revision: revision + 1, saved: true });
+  }
+
   if (url.pathname === '/api/v1/settings' && request.method === 'GET') {
     const result = await env.DB
       .prepare(
