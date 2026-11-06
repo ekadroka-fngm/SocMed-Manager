@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
-  const { workspace, theme, setTheme, showToast, auditLogs, navigateTo } = useApp();
+  const { workspace, currentUser, theme, setTheme, showToast, auditLogs, navigateTo } = useApp();
+  const isOwner = currentUser.role === 'Owner';
   const [activeTab, setActiveTab] = useState<string>('workspace');
   const [workspaceName, setWorkspaceName] = useState(workspace.name);
   const [timezone, setTimezone] = useState(workspace.timezone || 'Asia/Jakarta');
@@ -189,7 +190,7 @@ export const SettingsPage: React.FC = () => {
           </button>
           <button
             onClick={handleSave}
-            disabled={isSaving || isSettingsLoading}
+            disabled={isSaving || isSettingsLoading || !isOwner}
             className="px-4 py-1.5 bg-[#5268D8] hover:bg-[#4154B8] text-white rounded-xl text-xs font-medium flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
           >
             <Check className="w-3.5 h-3.5" />
@@ -329,7 +330,7 @@ export const SettingsPage: React.FC = () => {
                 <span className={`block w-5 h-5 rounded-full bg-white transition-transform ${notificationsEnabled ? 'translate-x-5' : 'translate-x-0'}`}/>
               </button>
             </div>
-            <p className="text-[10px] text-[#9CA3AF]">Preferensi ini berlaku selama sesi browser. Push/email notifications belum dikonfigurasi.</p>
+            <p className="text-[10px] text-[#9CA3AF]">Preferensi disimpan di workspace saat tombol Simpan ditekan. Push/email notifications belum dikonfigurasi.</p>
           </div>
         )}
 
