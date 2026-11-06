@@ -86,6 +86,8 @@ export const CreativeStudioPage: React.FC = () => {
         { id: `${currentItem.id}-solution`, tag: 'SOLUTION', time: '0:22', text: currentItem.storytelling.solution, color: 'text-[#1E8E3E]' },
         { id: `${currentItem.id}-cta`, tag: 'CTA', time: '0:36', text: currentItem.storytelling.cta, color: 'text-[#5268D8]' }
       ]);
+    } else {
+      setStoryBeats([]);
     }
   }, [currentItem?.id]);
 
