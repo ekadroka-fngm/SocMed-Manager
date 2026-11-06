@@ -444,11 +444,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
     if (job.status !== 'FAILED') {
-      showToast('Hanya job dengan status FAILED yang bisa dicoba ulang.');
+      showToast('Hanya job FAILED yang bisa dicoba ulang.');
       return;
     }
     if (job.retryCount >= job.maxRetries) {
       showToast('Batas percobaan ulang job sudah tercapai.');
+      return;
+    }
+
+    const content = contentItems.find(item => item.id === job.contentId);
+    if (!content || !content.approvedBy || !content.approvedAt) {
+      showToast('Retry ditolak: bukti approval konten tidak ditemukan.');
       return;
     }
 
@@ -463,36 +469,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           timestamp: new Date().toISOString(),
           step: 'RETRY_QUEUED',
           status: 'info',
-          details: `Retry request queued locally (Attempt ${job.retryCount + 1}/${job.maxRetries}). A social publishing worker is not connected yet.`
+          details: `Retry attempt ${job.retryCount + 1}/${job.maxRetries} masuk antrean lokal. Worker platform belum aktif.`
         }
       ]
     };
 
     setPublishingJobs(prev => prev.map(item => item.id === jobId ? retried : item));
-    logAudit('PUBLISHING_RETRY_QUEUED', 'PUBLISHING', jobId, `Queued retry attempt ${retried.retryCount}; no external publish call was made.`);
-    showToast('Retry masuk antrean lokal. Worker publikasi sosial belum terhubung, jadi konten belum dikirim.');
+    setContentItems(prev => prev.map(item => item.id === content.id ? { ...item, status: 'QUEUED' } : item));
+    logAudit('PUBLISHING_RETRY_QUEUED', 'PUBLISHING', jobId, `Queued local retry attempt ${retried.retryCount}; no external publish call was made.`);
+    showToast('Retry masuk antrean lokal. Konten belum dikirim ke platform.');
   };
 
   const cancelPublishingJob = (jobId: string) => {
-    setPublishingJobs(prev => prev.map(job => {
-      if (job.id === jobId) {
-        logAudit('PUBLISHING_CANCELLED', 'PUBLISHING', jobId, `Cancelled scheduled publishing job ${jobId}`);
-        return {
-          ...job,
-          status: 'CANCELLED',
-          logTrail: [
-            ...job.logTrail,
-            {
-              timestamp: new Date().toISOString(),
-              step: 'JOB_CANCELLED',
-              status: 'warn',
-              details: `Cancelled by user ${currentUser.name}`
-            }
-          ]
-        };
-      }
-      return job;
-    }));
+    const job = publishingJobs.find(item => item.id === jobId);
+    if (!job) {
+      showToast('Job tidak ditemukan.');
+      return;
+    }
+    if (!['QUEUED', 'SCHEDULED', 'FAILED'].includes(job.status)) {
+      showToast(`Job berstatus ${job.status} tidak bisa dibatalkan.`);
+      return;
+    }
+
+    const cancelled: PublishingJob = {
+      ...job,
+      status: 'CANCELLED',
+      logTrail: [
+        ...job.logTrail,
+        {
+          timestamp: new Date().toISOString(),
+          step: 'JOB_CANCELLED',
+          status: 'warn',
+          details: `Dibatalkan oleh ${currentUser.name} di aplikasi.`
+        }
+      ]
+    };
+    setPublishingJobs(prev => prev.map(item => item.id === jobId ? cancelled : item));
+    setContentItems(prev => prev.map(item =>
+      item.id === job.contentId && ['SCHEDULED', 'QUEUED', 'FAILED'].includes(item.status)
+        ? { ...item, status: 'CANCELLED' }
+        : item
+    ));
+    logAudit('PUBLISHING_CANCELLED', 'PUBLISHING', jobId, `Cancelled local publishing job ${jobId}`);
+    showToast('Jadwal dibatalkan. Tidak ada request ke platform sosial.');
   };
 
   const createBrand = (brandData: Omit<Brand, 'id' | 'campaignCount' | 'totalFollowers' | 'avgEngagementRate'>) => {
