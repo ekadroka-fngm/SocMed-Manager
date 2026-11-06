@@ -122,6 +122,7 @@ interface AppContextType {
   // AI Assistant
   aiMessages: AIMessage[];
   sendAIMessage: (prompt: string) => Promise<void>;
+  clearAIConversation: () => void;
   isAILoading: boolean;
 
   // Toast & Notifications
@@ -658,95 +659,146 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // AI Assistant Chat Messages
-  const [aiMessages, setAiMessages] = useState<AIMessage[]>([
-    {
-      id: 'msg_1',
-      sender: 'user',
-      timestamp: '2025-10-02T09:10:00Z',
-      content: 'Ringkas performa campaign Panen Raya Gayo dan sarankan 2 konten berikutnya.',
-      contextPage: 'overview',
-      contextBrand: 'Arunika Coffee'
-    },
-    {
-      id: 'msg_2',
-      sender: 'assistant',
-      timestamp: '2025-10-02T09:11:00Z',
-      content: `Campaign berjalan baik di TOFU tapi belum menutup funnel. Ringkasannya:\n\n• Engagement 5,1% di atas rata-rata brand 4,2% pada periode sama.\n• BOFU hanya 4 dari 18 konten: funnel belum seimbang; conversion belum terukur.\n• Rekomendasi konten 1: Testimoni pelanggan Gayo (Reel, BOFU).\n• Rekomendasi konten 2: Perbandingan harga per cangkir (Carousel, MOFU).\n\nSumber: D1 analytics_daily · 30 hari · bukan approval`,
-      contextPage: 'overview',
-      contextBrand: 'Arunika Coffee'
+  const [aiMessages, setAiMessages] = useState<AIMessage[]>([]);
+
+  const clearAIConversation = () => {
+    if (isAILoading) {
+      showToast('Tunggu sampai jawaban AI selesai sebelum memulai sesi baru.');
+      return;
     }
-  ]);
+    setAiMessages([]);
+  };
 
   const sendAIMessage = async (prompt: string) => {
+    const cleanPrompt = prompt.trim();
+    if (!cleanPrompt || isAILoading) return;
+
     const userMsg: AIMessage = {
-      id: `msg_user_${Date.now()}`,
+      id: `msg_user_${crypto.randomUUID()}`,
       sender: 'user',
       timestamp: new Date().toISOString(),
-      content: prompt,
+      content: cleanPrompt,
       contextPage: activePage,
       contextBrand: activeBrand.name
     };
 
+    const priorHistory = aiMessages.slice(-8).map(message => ({
+      sender: message.sender,
+      content: message.content
+    }));
+
     setAiMessages(prev => [...prev, userMsg]);
     setIsAILoading(true);
 
+    const activeBrandContent = contentItems.filter(item => item.brandId === activeBrand.id);
+    const activeBrandCampaigns = campaigns.filter(item => item.brandId === activeBrand.id);
+    const activeBrandIdeas = ideas.filter(item => item.brandId === activeBrand.id);
+    const activeBrandCompetitors = competitors.filter(item => item.brandId === activeBrand.id);
+    const statusCounts = activeBrandContent.reduce<Record<string, number>>((counts, item) => {
+      counts[item.status] = (counts[item.status] || 0) + 1;
+      return counts;
+    }, {});
+    const funnelCounts = activeBrandContent.reduce<Record<string, number>>((counts, item) => {
+      counts[item.funnelStage] = (counts[item.funnelStage] || 0) + 1;
+      return counts;
+    }, {});
+
+    const context = {
+      page: activePage,
+      workspace: { name: workspace.name, timezone: workspace.createdAt ? 'Asia/Jakarta' : 'Asia/Jakarta' },
+      currentUser: { name: currentUser.name, role: currentUser.role },
+      brand: {
+        id: activeBrand.id,
+        name: activeBrand.name,
+        category: activeBrand.category,
+        positioning: activeBrand.positioning,
+        voiceAndTone: activeBrand.voiceAndTone,
+        pillars: activeBrand.pillars.map(pillar => pillar.name),
+        personas: activeBrand.personas.map(persona => persona.name),
+        products: activeBrand.products.map(product => product.name)
+      },
+      selectedContent: selectedContent ? {
+        title: selectedContent.title,
+        status: selectedContent.status,
+        funnelStage: selectedContent.funnelStage,
+        format: selectedContent.format,
+        hook: selectedContent.hook,
+        caption: selectedContent.caption,
+        cta: selectedContent.cta
+      } : null,
+      contentSummary: {
+        total: activeBrandContent.length,
+        byStatus: statusCounts,
+        byFunnel: funnelCounts,
+        upcomingSchedules: activeBrandContent
+          .filter(item => item.scheduledFor && ['SCHEDULED', 'QUEUED'].includes(item.status))
+          .slice(0, 10)
+          .map(item => ({ title: item.title, status: item.status, scheduledFor: item.scheduledFor }))
+      },
+      campaigns: activeBrandCampaigns.slice(0, 12).map(campaign => ({
+        name: campaign.name,
+        objective: campaign.objective,
+        status: campaign.status,
+        funnelDistribution: campaign.funnelDistribution
+      })),
+      ideas: activeBrandIdeas.slice(0, 12).map(idea => ({
+        title: idea.title,
+        funnelStage: idea.funnelStage,
+        status: idea.status,
+        format: idea.format
+      })),
+      competitors: activeBrandCompetitors.slice(0, 10).map(competitor => ({
+        name: competitor.name,
+        platform: competitor.platform,
+        category: competitor.category,
+        observedThemes: competitor.dominantThemes,
+        latestObservation: competitor.snapshots[0]?.postSnippet || competitor.manualNotes || null,
+        lastObservedAt: competitor.lastObservedAt || null
+      })),
+      publishing: {
+        jobs: publishingJobs.filter(job => job.brandId === activeBrand.id).length,
+        queued: publishingJobs.filter(job => job.brandId === activeBrand.id && ['QUEUED', 'SCHEDULED'].includes(job.status)).length
+      },
+      availableDataNotes: [
+        'Social reach, impressions, follower growth, watch time, conversion and competitor private metrics are not available unless a connected official API or verified manual snapshot supplies them.',
+        'A local publishing job is not proof that a post has been published.',
+        'Do not infer metrics that are not present in this context.'
+      ]
+    };
+
     try {
-      // Simulate or call backend AI Assistant
-      // Formulate deep, domain-specific intelligence response grounded in active brand and page
-      await new Promise(r => setTimeout(r, 650));
-
-      let responseText = '';
-      const brand = activeBrand;
-      const lower = prompt.toLowerCase();
-
-      if (activePage === 'overview' || lower.includes('overview') || lower.includes('performance')) {
-        responseText = `Based on current workspace telemetry for **${brand.name}**:
-• Overall engagement is strong at **${brand.avgEngagementRate}** across ${brand.connectedPlatforms.join(', ')}.
-• Your primary funnel bottleneck is in **BOFU conversion**—while TOFU educational reels are driving high bookmark saves, only 14% of scheduled items lead with a clear product benefit or trial CTA.
-• Recommended action: Convert 2 high-performing educational concepts into 30-day proof stories before launching the next promotional cycle.`;
-      } else if (activePage === 'creative' || lower.includes('hook') || lower.includes('script') || lower.includes('brief')) {
-        responseText = `For the **${selectedContent?.title || 'current brief'}** targeting **${selectedContent?.targetAudience || brand.personas[0]?.name}**:
-1. **Hook Enhancement**: Replace passive lead-in with pattern-interrupt: *"If your skin feels tight 20 minutes after putting on serum, you are stripping your lipid barrier."*
-2. **Visual Pacing**: Use 0.8s micro-cuts in the first 3 seconds, cutting directly into the macro dropper texture on damp skin.
-3. **CTA Alignment**: Ensure compliance with PRD BR-014—remember that editing any copy here will invalidate its previous approval and require review by ${CURRENT_WORKSPACE.users.find(u => u.id !== currentUser.id)?.name || 'a second seat'}.`;
-      } else if (activePage === 'ideas' || lower.includes('idea') || lower.includes('angle')) {
-        responseText = `Strategic idea clusters for **${brand.name}** under **${brand.pillars[0]?.name}**:
-• **Idea 1 (TOFU)**: "The 3 common skincare ingredients that cancel each other out" (Reel / TikTok)
-• **Idea 2 (MOFU)**: "Why we source bio-fermented edelweiss instead of wild harvesting" (Carousel)
-• **Idea 3 (BOFU)**: "Customer skin barrier score before vs 21 days after" (Video case study)
-Would you like me to push any of these directly to Idea Lab or convert them into a Creative Brief?`;
-      } else if (activePage === 'competitors' || lower.includes('competitor')) {
-        responseText = `Competitor Intelligence Audit:
-We observe that direct competitors are leaning heavily into founder-led celebrity lifestyle content. This creates a significant **differentiation opportunity** for **${brand.name}**:
-• Double down on transparent bio-tech laboratory metrics and unretouched dermatological microscopy.
-• Consumers report fatigue with spiritual wellness claims; our clinical barrier restoration data will stand out sharply.`;
-      } else {
-        responseText = `Analyzing **${activePage.toUpperCase()}** for **${brand.name}**:
-Our data confirms all linked content follows the **DATA → INSIGHT → STRATEGY → CREATIVITY → EXECUTION** cycle. Currently, you have **${contentItems.filter(c => c.brandId === brand.id && c.status === 'IN_REVIEW').length} items pending approval**. Reviewing these will unblock your publishing queue for the upcoming week.`;
+      const response = await fetch('/api/v1/assistant', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt: cleanPrompt, context, history: priorHistory })
+      });
+      const result = await response.json().catch(() => ({})) as { text?: string; error?: string; model?: string };
+      if (!response.ok) {
+        throw new Error(result.error || `GPT tidak bisa dihubungi (HTTP ${response.status}).`);
+      }
+      if (!result.text?.trim()) {
+        throw new Error('GPT tidak mengembalikan jawaban.');
       }
 
       const assistantMsg: AIMessage = {
-        id: `msg_ai_${Date.now()}`,
+        id: `msg_ai_${crypto.randomUUID()}`,
         sender: 'assistant',
         timestamp: new Date().toISOString(),
-        content: responseText,
+        content: result.text.trim(),
         contextPage: activePage,
-        contextBrand: brand.name
+        contextBrand: activeBrand.name
       };
-
       setAiMessages(prev => [...prev, assistantMsg]);
-    } catch {
-      // Fallback
-      setAiMessages(prev => [
-        ...prev,
-        {
-          id: `msg_err_${Date.now()}`,
-          sender: 'assistant',
-          timestamp: new Date().toISOString(),
-          content: 'Unable to query context engine. Please verify backend connection.',
-          contextPage: activePage
-        }
-      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'GPT gagal memproses permintaan.';
+      setAiMessages(prev => [...prev, {
+        id: `msg_err_${crypto.randomUUID()}`,
+        sender: 'assistant',
+        timestamp: new Date().toISOString(),
+        content: message,
+        contextPage: activePage,
+        contextBrand: activeBrand.name
+      }]);
     } finally {
       setIsAILoading(false);
     }
@@ -813,6 +865,7 @@ Our data confirms all linked content follows the **DATA → INSIGHT → STRATEGY
         setIsMobileDrawerOpen,
         aiMessages,
         sendAIMessage,
+        clearAIConversation,
         isAILoading,
         toastMessage,
         showToast,
