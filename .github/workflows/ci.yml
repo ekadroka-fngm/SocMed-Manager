@@ -48,5 +48,13 @@ jobs:
       - name: Typecheck Worker
         run: npm run lint:worker
 
+      - name: Verify local D1 migrations and seed
+        run: |
+          npm run db:migrate:local
+          npm run db:seed:local
+
       - name: Build frontend
         run: npm run build
+
+      - name: Verify Worker bundle
+        run: npx wrangler deploy --dry-run
