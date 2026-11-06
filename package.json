@@ -1,14 +1,21 @@
 {
-  "name": "react-example",
+  "name": "socmed-manager",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite --port=3000 --host=0.0.0.0",
+    "dev:worker": "wrangler dev --port=8787",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "lint:worker": "tsc --noEmit -p tsconfig.worker.json",
+    "db:migrate:local": "wrangler d1 migrations apply socmed-manager-db --local",
+    "db:seed:local": "wrangler d1 execute socmed-manager-db --local --file=./scripts/seed-local-workspace.sql",
+    "db:migrate:remote": "wrangler d1 migrations apply socmed-manager-db --remote",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -26,11 +33,12 @@
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/express": "^4.17.21",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2",
-    "@types/express": "^4.17.21"
+    "wrangler": "4.158.0"
   }
 }
