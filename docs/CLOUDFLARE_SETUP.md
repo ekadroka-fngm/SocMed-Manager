@@ -12,7 +12,7 @@ Requirements:
 Run:
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -109,4 +109,4 @@ Semua endpoint `/api/v1/*` membutuhkan identitas yang lolos Cloudflare Access da
 - API dan schema D1 sudah disiapkan, tetapi halaman frontend masih menggunakan AppContext/mock data. Integrasi halaman ke endpoint akan dilakukan bertahap.
 - OAuth media sosial, penyimpanan token terenkripsi, publishing jobs, dan background queues belum aktif.
 - Placeholder D1 ID harus diganti sebelum remote migrations/deploy.
-- `package-lock.json` perlu dihasilkan dengan `npm install` setelah registry npm dapat diakses. Jangan membuat lockfile manual karena dapat menghasilkan dependency tree yang tidak konsisten.
+- `package-lock.json` sudah di-commit. Gunakan `npm ci` agar versi dependency lokal sama dengan CI.
