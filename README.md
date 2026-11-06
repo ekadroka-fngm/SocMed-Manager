@@ -7,7 +7,7 @@ Multi-brand content planning and management workspace.
 Requirements: Node.js 22 and npm.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
