@@ -38,7 +38,8 @@ export const SettingsPage: React.FC = () => {
     dataRetention: '12 bulan',
     bgGenProvider: 'Gemini adapter',
     reducedMotion: false,
-    focusVisible: true
+    focusVisible: true,
+    notificationsEnabled: true
   });
 
   const navItems = [
@@ -61,7 +62,7 @@ export const SettingsPage: React.FC = () => {
         const data = await response.json() as {
           workspaceName: string; timezone: string; language: string;
           dataRetention: string; backgroundAiProvider: string;
-          reducedMotion: boolean; focusVisible: boolean;
+          reducedMotion: boolean; focusVisible: boolean; notificationsEnabled: boolean;
         };
         if (cancelled) return;
         setWorkspaceName(data.workspaceName);
@@ -71,6 +72,7 @@ export const SettingsPage: React.FC = () => {
         setBgGenProvider(data.backgroundAiProvider);
         setReducedMotion(data.reducedMotion);
         setFocusVisible(data.focusVisible);
+        setNotificationsEnabled(data.notificationsEnabled);
         savedSettingsRef.current = {
           workspaceName: data.workspaceName,
           timezone: data.timezone,
@@ -78,7 +80,8 @@ export const SettingsPage: React.FC = () => {
           dataRetention: data.dataRetention,
           bgGenProvider: data.backgroundAiProvider,
           reducedMotion: data.reducedMotion,
-          focusVisible: data.focusVisible
+          focusVisible: data.focusVisible,
+          notificationsEnabled: data.notificationsEnabled
         };
       } catch {
         if (!cancelled) showToast('Pengaturan cloud belum bisa dimuat. Periksa koneksi Worker dan login.');
@@ -104,6 +107,7 @@ export const SettingsPage: React.FC = () => {
     setBgGenProvider(saved.bgGenProvider);
     setReducedMotion(saved.reducedMotion);
     setFocusVisible(saved.focusVisible);
+    setNotificationsEnabled(saved.notificationsEnabled);
   };
 
   const handleSave = async () => {
@@ -116,7 +120,8 @@ export const SettingsPage: React.FC = () => {
       dataRetention: dataRetention.trim(),
       backgroundAiProvider: bgGenProvider,
       reducedMotion,
-      focusVisible
+      focusVisible,
+      notificationsEnabled
     };
     try {
       const response = await fetch('/api/v1/settings', {
@@ -133,7 +138,8 @@ export const SettingsPage: React.FC = () => {
         dataRetention: payload.dataRetention,
         bgGenProvider: payload.backgroundAiProvider,
         reducedMotion: payload.reducedMotion,
-        focusVisible: payload.focusVisible
+        focusVisible: payload.focusVisible,
+        notificationsEnabled: payload.notificationsEnabled
       };
       setSavedToast(true);
       window.setTimeout(() => setSavedToast(false), 2500);
