@@ -312,7 +312,7 @@ export const SettingsPage: React.FC = () => {
         {activeTab === 'ai' && (
           <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#272B35] bg-white dark:bg-[#161922] p-5 space-y-3">
             <h3 className="text-sm font-bold text-[#111318] dark:text-[#F3F4F6]">AI providers</h3>
-            <p className="text-xs text-[#68717E] dark:text-[#9CA3AF]">AI Assistant ditetapkan menggunakan GPT. Koneksi GPT belum aktif sampai Worker Secret dikonfigurasi.</p>
+            <p className="text-xs text-[#68717E] dark:text-[#9CA3AF]">AI Assistant memakai GPT melalui Cloudflare Worker. Atur secret OPENAI_API_KEY dan model OPENAI_MODEL pada konfigurasi Worker.</p>
             <label className="block text-[10px] font-mono uppercase text-[#68717E]">Background provider</label>
             <select value={bgGenProvider} onChange={event => setBgGenProvider(event.target.value)} className="w-full rounded-lg border border-[#E5E7EB] dark:border-[#272B35] bg-transparent px-3 py-2 text-xs">
               <option>Gemini adapter</option>
