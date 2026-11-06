@@ -47,6 +47,9 @@ export function handleContentEdit(
     title: updates.title ?? content.title,
     hook: updates.hook ?? content.hook,
     caption: updates.caption ?? content.caption,
+    cta: updates.cta ?? content.cta,
+    hashtags: updates.hashtags ?? content.hashtags,
+    storytelling: updates.storytelling ?? content.storytelling,
     changeNote: changeNote + (isApprovedOrScheduled ? ' (Approval invalidated)' : '')
   };
 
