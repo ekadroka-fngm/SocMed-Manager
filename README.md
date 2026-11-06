@@ -22,16 +22,28 @@ Local development authentication uses `owner@local.test` by default. Change `LOC
 See [Cloudflare setup guide](docs/CLOUDFLARE_SETUP.md) for:
 - D1 creation and migrations
 - Cloudflare Access configuration
+- GPT Worker secret
 - Remote workspace bootstrap
 - Deployment
 
-## Current implementation
+## Implemented foundation
 
-The frontend is still progressively migrating from in-memory mock data to the Worker API. Initial Cloudflare foundation endpoints are:
-- `GET /api/health`
-- `GET /api/v1/me`
-- `GET /api/v1/workspace`
-- `GET /api/v1/brands`
-- `POST /api/v1/brands`
+- Authenticated workspace identity and role are loaded from Cloudflare Access.
+- Brands, campaigns, content briefs, ideas, competitor observations, social integration placeholders, and local publishing jobs are stored in a versioned workspace state record in D1.
+- Workspace writes use optimistic revision checks to detect concurrent edits.
+- Audit events are stored separately in D1 and exposed as an append-only application feed.
+- Workspace settings and notification preferences are persisted to D1.
+- AI Assistant requests are sent from the Worker to the OpenAI Responses API; the API key never goes to the browser.
+- Desktop workspace search navigates to matching brands, campaigns, ideas, and content briefs.
+- Mobile analytics export uses current workspace content records.
+
+## Current integration limits
+
+- Social OAuth and official platform API connections are not configured. Integration UI must not be treated as proof that an account is connected.
+- Publishing jobs are stored locally in D1, but a social publishing worker is not connected. A queued job is not a published post.
+- Analytics currently reports content/workflow records. Reach, impressions, engagement and follower-growth metrics require official platform APIs.
+- Competitor monitoring is based on manual observations; automatic scraping and private competitor metrics are not implemented.
+- Brand logo previews are local browser previews; permanent Cloudflare R2 upload is not enabled.
+- GPT Assistant requires the `OPENAI_API_KEY` Worker secret. `OPENAI_MODEL` is optional and defaults to `gpt-6-luna`.
 
 The local identity bypass is development-only. Production API routes require a verified Cloudflare Access JWT and an active workspace membership.
