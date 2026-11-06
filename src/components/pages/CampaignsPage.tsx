@@ -21,6 +21,7 @@ export const CampaignsPage: React.FC = () => {
     selectedCampaignId,
     setSelectedCampaignId,
     createCampaign,
+    updateCampaign,
     navigateTo,
     showToast
   } = useApp();
@@ -94,16 +95,21 @@ export const CampaignsPage: React.FC = () => {
       return;
     }
 
-    if (activeCampaign) {
-      activeCampaign.funnelDistribution = {
+    if (!activeCampaign) {
+      showToast('Pilih campaign terlebih dahulu.');
+      return;
+    }
+
+    updateCampaign(activeCampaign.id, {
+      funnelDistribution: {
         tofu: Number(tofuPct),
         mofu: Number(mofuPct),
         bofu: Number(bofuPct)
-      };
-    }
+      }
+    });
 
     setIsFunnelModalOpen(false);
-    showToast('Komposisi funnel campaign berhasil disesuaikan.');
+    showToast('Komposisi funnel campaign berhasil disimpan.');
   };
 
   return (
