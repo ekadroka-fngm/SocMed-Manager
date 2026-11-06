@@ -162,10 +162,14 @@ async function verifyAccessJwt(token: string, env: Env): Promise<AccessClaims> {
     throw new ApiError(401, 'Signing key Access token tidak valid.');
   }
 
+  // Copy signature bytes into a concrete ArrayBuffer for WebCrypto's BufferSource type.
+  const signatureBuffer = new ArrayBuffer(signature.byteLength);
+  new Uint8Array(signatureBuffer).set(signature);
+
   const isValid = await crypto.subtle.verify(
     { name: 'RSASSA-PKCS1-v1_5' },
     publicKey,
-    signature,
+    signatureBuffer,
     new TextEncoder().encode(`${parts[0]}.${parts[1]}`)
   );
 
