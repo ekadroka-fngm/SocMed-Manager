@@ -617,8 +617,8 @@ export const OverviewPage: React.FC = () => {
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={() => {
-                        approveContentItem(item.id);
-                        showToast(`Konten "${item.title}" berhasil disetujui (APPROVED).`);
+                        const approved = approveContentItem(item.id);
+                        if (approved) showToast(`Konten "${item.title}" berhasil disetujui (APPROVED).`);
                       }}
                       className="w-7 h-7 rounded-lg bg-[#E6F4EA] hover:bg-[#D1EBD8] text-[#1E8E3E] flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
                       title="Setujui (Approve)"

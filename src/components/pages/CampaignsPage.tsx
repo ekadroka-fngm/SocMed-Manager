@@ -21,16 +21,18 @@ export const CampaignsPage: React.FC = () => {
     selectedCampaignId,
     setSelectedCampaignId,
     createCampaign,
+    updateCampaign,
     navigateTo,
     showToast
   } = useApp();
 
   const brandCampaigns = campaigns.filter(c => c.brandId === activeBrand.id);
-  const activeCampaign = brandCampaigns.find(c => c.id === selectedCampaignId) || brandCampaigns[0];
+  const visibleCampaigns = brandCampaigns.filter(campaign => statusFilter === 'all' || campaign.status === statusFilter);
+  const activeCampaign = visibleCampaigns.find(c => c.id === selectedCampaignId) || visibleCampaigns[0] || brandCampaigns.find(c => c.id === selectedCampaignId) || brandCampaigns[0];
 
   // Dropdowns and modals
   const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'ACTIVE' | 'DRAFT' | 'COMPLETED'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'ACTIVE' | 'SCHEDULED' | 'IN_REVIEW' | 'COMPLETED'>('all');
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -94,16 +96,21 @@ export const CampaignsPage: React.FC = () => {
       return;
     }
 
-    if (activeCampaign) {
-      activeCampaign.funnelDistribution = {
+    if (!activeCampaign) {
+      showToast('Pilih campaign terlebih dahulu.');
+      return;
+    }
+
+    updateCampaign(activeCampaign.id, {
+      funnelDistribution: {
         tofu: Number(tofuPct),
         mofu: Number(mofuPct),
         bofu: Number(bofuPct)
-      };
-    }
+      }
+    });
 
     setIsFunnelModalOpen(false);
-    showToast('Komposisi funnel campaign berhasil disesuaikan.');
+    showToast('Komposisi funnel campaign berhasil disimpan.');
   };
 
   return (
@@ -170,7 +177,7 @@ export const CampaignsPage: React.FC = () => {
 
             {isStatusDropdownOpen && (
               <div className="absolute top-full left-0 mt-1 w-36 bg-white dark:bg-[#1B1E25] border border-[#E7E9ED] dark:border-[#292E38] rounded-xl shadow-xl z-20 p-1">
-                {['all', 'ACTIVE', 'DRAFT', 'COMPLETED'].map(st => (
+                {['all', 'ACTIVE', 'SCHEDULED', 'IN_REVIEW', 'COMPLETED'].map(st => (
                   <button
                     key={st}
                     onClick={() => {
@@ -225,7 +232,7 @@ export const CampaignsPage: React.FC = () => {
 
             {/* Campaign Cards List */}
             <div className="space-y-4">
-              {brandCampaigns.map(cmp => {
+              {visibleCampaigns.map(cmp => {
                 const isSelected = cmp.id === activeCampaign?.id;
                 const tofu = cmp.funnelDistribution?.tofu ?? cmp.funnelDistribution?.TOFU ?? 50;
                 const mofu = cmp.funnelDistribution?.mofu ?? cmp.funnelDistribution?.MOFU ?? 30;

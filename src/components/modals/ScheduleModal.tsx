@@ -16,6 +16,7 @@ import {
   Send
 } from 'lucide-react';
 import { SocialPlatform } from '../../types';
+import { canScheduleContent } from '../../logic/contentStateMachine';
 
 interface ScheduleModalProps {
   isOpen: boolean;
@@ -24,6 +25,23 @@ interface ScheduleModalProps {
 }
 
 export type SchedulingFormat = 'video' | 'carousel' | 'story';
+
+const createDefaultSchedule = () => {
+  const date = new Date();
+  const nextQuarterHour = Math.ceil((date.getMinutes() + 1) / 15) * 15;
+  date.setMinutes(nextQuarterHour, 0, 0);
+
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return {
+    date: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    time: `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  };
+};
+
+const getLocalDateValue = (date = new Date()) => {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
 
 export const ScheduleModal: React.FC<ScheduleModalProps> = ({
   isOpen,
@@ -34,7 +52,6 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({
     activeBrand,
     contentItems,
     scheduleContentItem,
-    approveContentItem,
     showToast
   } = useApp();
 
@@ -46,12 +63,14 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({
   // Requirement: Opsi format (video, carousel, story) HANYA berbentuk icon
   const [selectedFormat, setSelectedFormat] = useState<SchedulingFormat>('video');
   const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform>('instagram');
-  const [scheduleDate, setScheduleDate] = useState<string>('2025-10-03');
-  const [scheduleTime, setScheduleTime] = useState<string>('18:30');
+  const [scheduleDefaults] = useState(createDefaultSchedule);
+  const [scheduleDate, setScheduleDate] = useState<string>(scheduleDefaults.date);
+  const [scheduleTime, setScheduleTime] = useState<string>(scheduleDefaults.time);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedItem =
     contentItems.find((c) => c.id === selectedContentId) || brandItems[0];
+  const isSelectedItemApproved = selectedItem ? canScheduleContent(selectedItem) : false;
 
   const handleConfirmSchedule = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,23 +79,27 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({
       return;
     }
 
-    setIsSubmitting(true);
-
-    // If not approved, auto-approve for convenience or ensure approval
-    if (selectedItem.status !== 'APPROVED') {
-      approveContentItem(selectedItem.id);
+    if (!canScheduleContent(selectedItem)) {
+      showToast('Konten belum disetujui. Buka Creative Studio dan selesaikan approval terlebih dahulu.');
+      return;
     }
 
     const scheduledDateTime = `${scheduleDate}T${scheduleTime}:00`;
-    scheduleContentItem(selectedItem.id, scheduledDateTime, selectedPlatform);
+    if (new Date(scheduledDateTime).getTime() <= Date.now()) {
+      showToast('Pilih tanggal dan jam publikasi yang akan datang.');
+      return;
+    }
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      showToast(
-        `Jadwal posting "${selectedItem.title}" berhasil diatur untuk ${scheduleDate} ${scheduleTime} WIB.`
-      );
-      onClose();
-    }, 400);
+    setIsSubmitting(true);
+    const wasScheduled = scheduleContentItem(selectedItem.id, scheduledDateTime, selectedPlatform);
+    setIsSubmitting(false);
+
+    if (!wasScheduled) return;
+
+    showToast(
+      `Jadwal "${selectedItem.title}" berhasil dibuat untuk ${scheduleDate} ${scheduleTime} WIB. Konten belum dipublikasikan.`
+    );
+    onClose();
   };
 
   const platformsList: { id: SocialPlatform; name: string; icon: React.ReactNode }[] = [
@@ -206,6 +229,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({
               <input
                 type="date"
                 required
+                min={getLocalDateValue()}
                 value={scheduleDate}
                 onChange={(e) => setScheduleDate(e.target.value)}
                 className="w-full px-3 py-2 bg-neutral-50 dark:bg-[#20242D] border border-[#E7E9ED] dark:border-[#2E3442] rounded-xl text-xs font-mono text-[#17191F] dark:text-[#E9EBF0]"
@@ -243,9 +267,9 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({
                 <strong className="font-mono">{selectedItem.status}</strong>
               </span>
             </div>
-            {selectedItem.status !== 'APPROVED' && (
-              <span className="text-[10px] text-[#5268D8] dark:text-[#8292F0] font-semibold shrink-0">
-                Otomatis disetujui saat jadwal dibuat
+            {!isSelectedItemApproved && (
+              <span className="text-[10px] text-[#D97706] dark:text-[#FBBF24] font-semibold shrink-0 text-right">
+                Approval wajib di Creative Studio
               </span>
             )}
           </div>
@@ -262,11 +286,11 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({
           </button>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isSelectedItemApproved}
             className="px-4 py-2 bg-[#5268D8] hover:bg-[#4357C5] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer disabled:opacity-70"
           >
             <Send className="w-3.5 h-3.5" />
-            <span>{isSubmitting ? 'Menjadwalkan...' : 'Konfirmasi Jadwalkan'}</span>
+            <span>{isSubmitting ? 'Menjadwalkan...' : !selectedItem ? 'Pilih Konten' : !isSelectedItemApproved ? 'Menunggu Approval' : 'Konfirmasi Jadwalkan'}</span>
           </button>
         </div>
       </form>

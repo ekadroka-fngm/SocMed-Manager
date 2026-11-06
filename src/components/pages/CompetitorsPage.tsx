@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useApp } from '../../context/AppContext';
 import {
   ChevronDown,
   Plus,
@@ -16,7 +17,7 @@ interface CompetitorRow {
   avatar: string;
   avatarBg?: string;
   category: string;
-  postPerWeek: number;
+  postPerWeek: string;
   dominantTheme: string;
   lastSnapshot: string;
   status: 'Terpantau' | 'Perlu' | 'Arsip';
@@ -27,133 +28,54 @@ interface CompetitorRow {
 }
 
 export const CompetitorsPage: React.FC = () => {
+  const { activeBrand, competitors: storedCompetitors, addCompetitor, addCompetitorSnapshot, showToast } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua kategori');
-  const [selectedCompId, setSelectedCompId] = useState<string>('comp_tuku');
+  const [selectedCompId, setSelectedCompId] = useState<string>('cmp_tuku');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSnapshotModalOpen, setIsSnapshotModalOpen] = useState(false);
   const [newSnapshotNote, setNewSnapshotNote] = useState('');
 
-  const [competitors, setCompetitors] = useState<CompetitorRow[]>([
-    {
-      id: 'comp_tuku',
-      name: 'Rumah Kopi Tuku',
-      handle: '@rumahkopituku',
-      avatar: 'R',
-      category: 'F&B lokal',
-      postPerWeek: 12,
-      dominantTheme: 'Edukasi + promo',
-      lastSnapshot: '28 Sep',
-      status: 'Terpantau',
-      location: 'F&B lokal · Yogyakarta',
-      profileUrl: 'instagram.com/rumahkopituku',
-      manualNotes: [
-        {
-          date: '28 Sep 2025',
-          note: 'Narasi "ngopi murah" konsisten. Hook 3 detik pertama selalu pertanyaan harga.',
-        },
-        {
-          date: '21 Sep 2025',
-          note: 'Mulai eksperimen carousel edukasi; engagement naik dari 1,8% ke 2,6%.',
-        },
-      ],
-      snapshotHistory: [
-        { date: '28 Sep', count: 3, tag: 'manual' },
-        { date: '21 Sep', count: 5, tag: 'manual' },
-        { date: '14 Sep', count: 4, tag: 'manual' },
-      ],
-    },
-    {
-      id: 'comp_kenangan',
-      name: 'Kopi Kenangan Rumah',
-      handle: '@kenanganrumah',
-      avatar: 'K',
-      category: 'F&B chain',
-      postPerWeek: 18,
-      dominantTheme: 'Promo + humor',
-      lastSnapshot: '28 Sep',
-      status: 'Terpantau',
-      location: 'F&B chain · Nasional',
-      profileUrl: 'instagram.com/kenanganrumah',
-      manualNotes: [
-        {
-          date: '28 Sep 2025',
-          note: 'Menggunakan creator mikro lokal untuk promo bundling pagi.',
-        },
-      ],
-      snapshotHistory: [
-        { date: '28 Sep', count: 6, tag: 'manual' },
-        { date: '20 Sep', count: 4, tag: 'manual' },
-      ],
-    },
-    {
-      id: 'comp_selaras_nat',
-      name: 'Selaras Naturals',
-      handle: '@selarasnaturals',
-      avatar: 'S',
-      category: 'Beauty',
-      postPerWeek: 9,
-      dominantTheme: 'Edukasi bahan',
-      lastSnapshot: '28 Sep',
-      status: 'Terpantau',
-      location: 'Beauty · Bandung',
-      profileUrl: 'instagram.com/selarasnaturals',
-      manualNotes: [
-        {
-          date: '28 Sep 2025',
-          note: 'Post carousel breakdown ingredients aktif setiap hari Selasa.',
-        },
-      ],
-      snapshotHistory: [
-        { date: '28 Sep', count: 4, tag: 'manual' },
-        { date: '21 Sep', count: 3, tag: 'manual' },
-      ],
-    },
-    {
-      id: 'comp_titik_kumpul',
-      name: 'Titik Kumpul Coffee',
-      handle: '@titikkumpul',
-      avatar: 'T',
-      category: 'F&B lokal',
-      postPerWeek: 6,
-      dominantTheme: 'Komunitas',
-      lastSnapshot: '21 Sep',
-      status: 'Perlu',
-      location: 'F&B lokal · Sleman',
-      profileUrl: 'instagram.com/titikkumpul',
-      manualNotes: [
-        {
-          date: '21 Sep 2025',
-          note: 'Aktivasi event manual brewing setiap akhir pekan.',
-        },
-      ],
-      snapshotHistory: [
-        { date: '21 Sep', count: 2, tag: 'manual' },
-        { date: '14 Sep', count: 3, tag: 'manual' },
-      ],
-    },
-    {
-      id: 'comp_barista_lokal',
-      name: 'Barista Lokal ID',
-      handle: '@baristalokal',
-      avatar: 'B',
-      category: 'Kreator',
-      postPerWeek: 21,
-      dominantTheme: 'Tutorial',
-      lastSnapshot: '14 Sep',
-      status: 'Arsip',
-      location: 'Kreator · Jakarta',
-      profileUrl: 'instagram.com/baristalokal',
-      manualNotes: [
-        {
-          date: '14 Sep 2025',
-          note: 'Fokus tutorial latte art dan kalibrasi gilingan biji.',
-        },
-      ],
-      snapshotHistory: [
-        { date: '14 Sep', count: 5, tag: 'manual' },
-      ],
-    },
-  ]);
+  const brandCompetitors = storedCompetitors.filter(competitor => competitor.brandId === activeBrand.id);
+  const competitors: CompetitorRow[] = brandCompetitors.map(competitor => {
+    const snapshots = [...competitor.snapshots].sort((a, b) =>
+      new Date(b.snapshotDate || b.date || 0).getTime() - new Date(a.snapshotDate || a.date || 0).getTime()
+    );
+    const noteRows = snapshots
+      .filter(snapshot => Boolean(snapshot.postSnippet))
+      .map(snapshot => ({
+        date: snapshot.snapshotDate || snapshot.date || 'Tanggal tidak dicatat',
+        note: snapshot.postSnippet || ''
+      }));
+    if (!noteRows.length && competitor.manualNotes) {
+      noteRows.push({ date: competitor.lastObservedAt || 'Tanggal tidak dicatat', note: competitor.manualNotes });
+    }
+
+    const status = competitor.status === 'ARCHIVED'
+      ? 'Arsip'
+      : competitor.status === 'NEEDS_REFRESH'
+        ? 'Perlu'
+        : 'Terpantau';
+
+    return {
+      id: competitor.id,
+      name: competitor.name,
+      handle: competitor.handle || '',
+      avatar: competitor.name.charAt(0).toUpperCase(),
+      category: competitor.category || competitor.platform,
+      postPerWeek: competitor.postFrequency || 'Belum dicatat',
+      dominantTheme: (competitor.dominantThemes || competitor.topPublicThemes || []).join(' · ') || 'Belum dicatat',
+      lastSnapshot: snapshots[0]?.snapshotDate || snapshots[0]?.date || competitor.lastObservedAt || 'Belum ada',
+      status,
+      location: competitor.category || competitor.platform,
+      profileUrl: competitor.profileUrl,
+      manualNotes: noteRows,
+      snapshotHistory: snapshots.map(snapshot => ({
+        date: snapshot.snapshotDate || snapshot.date || 'Tanggal tidak dicatat',
+        count: snapshot.postSnippet ? 1 : 0,
+        tag: snapshot.verifiedPublic ? 'Terverifikasi' : 'Manual'
+      }))
+    };
+  });
 
   // Form states for new competitor
   const [formName, setFormName] = useState('');
@@ -161,74 +83,82 @@ export const CompetitorsPage: React.FC = () => {
   const [formCategory, setFormCategory] = useState('F&B lokal');
   const [formTheme, setFormTheme] = useState('');
 
-  const selectedComp =
-    competitors.find((c) => c.id === selectedCompId) || competitors[0];
+  const categories = Array.from(new Set(competitors.map(competitor => competitor.category).filter(Boolean)));
+  const filteredCompetitors = selectedCategory === 'Semua kategori'
+    ? competitors
+    : competitors.filter(competitor => competitor.category === selectedCategory);
+  const selectedComp = filteredCompetitors.find(competitor => competitor.id === selectedCompId) || filteredCompetitors[0] || {
+    id: '',
+    name: '',
+    handle: '',
+    avatar: '',
+    category: '',
+    postPerWeek: 'Belum dicatat',
+    dominantTheme: 'Belum dicatat',
+    lastSnapshot: 'Belum ada',
+    status: 'Perlu' as const,
+    location: '',
+    profileUrl: '',
+    manualNotes: [],
+    snapshotHistory: []
+  };
+
+  useEffect(() => {
+    if (selectedComp && selectedComp.id !== selectedCompId) setSelectedCompId(selectedComp.id);
+  }, [selectedComp?.id]);
 
   const handleAddCompetitor = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim()) return;
+    const name = formName.trim();
+    const handle = formHandle.trim().replace(/^@/, '');
+    if (!name || !handle) {
+      showToast('Nama dan handle/profile URL kompetitor wajib diisi.');
+      return;
+    }
 
-    const newComp: CompetitorRow = {
-      id: `comp_${Date.now()}`,
-      name: formName.trim(),
-      handle: formHandle.trim().startsWith('@') ? formHandle.trim() : `@${formHandle.trim()}`,
-      avatar: formName.trim().charAt(0).toUpperCase(),
+    const id = addCompetitor({
+      brandId: activeBrand.id,
+      name,
+      handle: `@${handle}`,
+      platform: 'instagram',
+      profileUrl: `https://instagram.com/${handle}`,
       category: formCategory,
-      postPerWeek: 8,
-      dominantTheme: formTheme.trim() || 'Umum',
-      lastSnapshot: 'Hari ini',
-      status: 'Terpantau',
-      location: `${formCategory} · Indonesia`,
-      profileUrl: `instagram.com/${formHandle.replace('@', '')}`,
-      manualNotes: [
-        {
-          date: 'Hari ini',
-          note: 'Baru ditambahkan ke daftar pengamatan kompetitor.',
-        },
-      ],
-      snapshotHistory: [{ date: 'Hari ini', count: 1, tag: 'manual' }],
-    };
-
-    setCompetitors([newComp, ...competitors]);
-    setSelectedCompId(newComp.id);
+      dominantThemes: formTheme.trim() ? [formTheme.trim()] : [],
+      whitespaceOpportunity: '',
+      status: 'ACTIVE'
+    });
+    setSelectedCompId(id);
     setIsAddModalOpen(false);
     setFormName('');
     setFormHandle('');
     setFormTheme('');
+    showToast('Kompetitor ditambahkan. Data performa belum diisi.');
   };
 
   const handleSaveSnapshot = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSnapshotNote.trim()) return;
+    if (!selectedComp || !newSnapshotNote.trim()) {
+      showToast('Pilih kompetitor dan isi catatan observasi terlebih dahulu.');
+      return;
+    }
 
-    setCompetitors((prev) =>
-      prev.map((c) => {
-        if (c.id === selectedComp.id) {
-          return {
-            ...c,
-            lastSnapshot: 'Hari ini',
-            manualNotes: [
-              { date: 'Hari ini', note: newSnapshotNote.trim() },
-              ...c.manualNotes,
-            ],
-            snapshotHistory: [
-              { date: 'Hari ini', count: 3, tag: 'manual' },
-              ...c.snapshotHistory,
-            ],
-          };
-        }
-        return c;
-      })
-    );
+    const competitor = brandCompetitors.find(item => item.id === selectedComp.id);
+    if (!competitor) {
+      showToast('Kompetitor tidak ditemukan.');
+      return;
+    }
 
+    const observedAt = new Date().toISOString();
+    addCompetitorSnapshot(selectedComp.id, {
+      date: observedAt.slice(0, 10),
+      snapshotDate: observedAt,
+      postSnippet: newSnapshotNote.trim(),
+      sourceUrl: competitor.profileUrl,
+      verifiedPublic: false
+    });
     setNewSnapshotNote('');
     setIsSnapshotModalOpen(false);
   };
-
-  const filteredCompetitors =
-    selectedCategory === 'Semua kategori'
-      ? competitors
-      : competitors.filter((c) => c.category === selectedCategory);
 
   return (
     <div className="space-y-6">
@@ -239,23 +169,20 @@ export const CompetitorsPage: React.FC = () => {
             Competitor intelligence
           </h1>
           <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-0.5">
-            6 kompetitor dipantau · data publik & observasi manual · snapshot terakhir 28 Sep 2025
+            {competitors.length} kompetitor · {activeBrand.name} · observasi manual
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Category Dropdown */}
-          <button
-            onClick={() =>
-              setSelectedCategory(
-                selectedCategory === 'Semua kategori' ? 'F&B lokal' : 'Semua kategori'
-              )
-            }
-            className="px-3 py-1.5 bg-white dark:bg-[#1A1D24] border border-[#E5E7EB] dark:border-[#272B35] rounded-xl text-xs font-medium text-[#111318] dark:text-[#F3F4F6] flex items-center gap-1.5 shadow-xs hover:bg-[#F9FAFB] dark:hover:bg-[#222630] cursor-pointer"
+          <select
+            aria-label="Filter kategori kompetitor"
+            value={selectedCategory}
+            onChange={event => setSelectedCategory(event.target.value)}
+            className="px-3 py-1.5 bg-white dark:bg-[#1A1D24] border border-[#E5E7EB] dark:border-[#272B35] rounded-xl text-xs font-medium text-[#111318] dark:text-[#F3F4F6]"
           >
-            <span>{selectedCategory}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#6B7280]" />
-          </button>
+            <option value="Semua kategori">Semua kategori</option>
+            {categories.map(category => <option key={category} value={category}>{category}</option>)}
+          </select>
 
           {/* Add Competitor Button */}
           <button
@@ -286,12 +213,17 @@ export const CompetitorsPage: React.FC = () => {
                 Daftar kompetitor
               </h2>
               <span className="text-xs font-mono text-[#9CA3AF]">
-                {filteredCompetitors.length} dari 6 · diurutkan snapshot terbaru
+                {filteredCompetitors.length} kompetitor
               </span>
             </div>
 
             {/* Desktop Table (hidden on mobile) */}
-            <div className="hidden sm:block overflow-x-auto">
+            {!filteredCompetitors.length && (
+            <p className="py-10 text-center text-xs text-[#68717E]">
+              Belum ada kompetitor untuk brand ini. Tambahkan kompetitor pertama untuk mulai mencatat observasi.
+            </p>
+          )}
+          <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-[#E5E7EB] dark:border-[#272B35] text-[10px] font-mono uppercase text-[#9CA3AF] dark:text-[#6B7280]">
@@ -412,6 +344,7 @@ export const CompetitorsPage: React.FC = () => {
 
         {/* Right Detail Card (lg:col-span-4) */}
         <div className="lg:col-span-4">
+          {selectedComp ? (
           <div className="bg-white dark:bg-[#161922] rounded-2xl border border-[#E5E7EB] dark:border-[#272B35] shadow-xs p-6 space-y-5">
             {/* Competitor Header */}
             <div className="flex items-start gap-3">
@@ -429,15 +362,15 @@ export const CompetitorsPage: React.FC = () => {
             </div>
 
             {/* Profile URL Box */}
-            <a
-              href={`https://${selectedComp.profileUrl}`}
+            {selectedComp.profileUrl && <a
+              href={selectedComp.profileUrl.startsWith('http') ? selectedComp.profileUrl : `https://${selectedComp.profileUrl}`}
               target="_blank"
               rel="noreferrer"
               className="px-3 py-2 rounded-xl bg-[#F9FAFB] dark:bg-[#1A1D24] border border-[#E5E7EB] dark:border-[#272B35] text-xs font-mono text-[#5268D8] dark:text-[#8292F0] flex items-center justify-between hover:underline group"
             >
               <span className="truncate">{selectedComp.profileUrl}</span>
               <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-70 group-hover:opacity-100" />
-            </a>
+            </a>}
 
             {/* Catatan Manual Section */}
             <div>
@@ -445,7 +378,7 @@ export const CompetitorsPage: React.FC = () => {
                 CATATAN MANUAL
               </span>
               <div className="space-y-3">
-                {selectedComp.manualNotes.map((note, idx) => (
+                {selectedComp.manualNotes.length ? selectedComp.manualNotes.map((note, idx) => (
                   <div key={idx} className="text-xs space-y-0.5">
                     <span className="text-[10px] font-mono text-[#9CA3AF] block">
                       {note.date}
@@ -454,7 +387,7 @@ export const CompetitorsPage: React.FC = () => {
                       {note.note}
                     </p>
                   </div>
-                ))}
+                )) : <p className="text-xs text-[#9CA3AF]">Belum ada catatan. Tambahkan snapshot untuk menyimpan observasi.</p>}
               </div>
             </div>
 
@@ -464,7 +397,7 @@ export const CompetitorsPage: React.FC = () => {
                 RIWAYAT SNAPSHOT
               </span>
               <div className="space-y-2">
-                {selectedComp.snapshotHistory.map((snap, idx) => (
+                {selectedComp.snapshotHistory.length ? selectedComp.snapshotHistory.map((snap, idx) => (
                   <div
                     key={idx}
                     className="flex items-center justify-between text-xs py-1"
@@ -474,20 +407,21 @@ export const CompetitorsPage: React.FC = () => {
                         {snap.date}
                       </span>
                       <span className="text-[#111318] dark:text-[#F3F4F6]">
-                        {snap.count} post diamati
+                        Snapshot tersimpan
                       </span>
                     </div>
                     <span className="px-1.5 py-0.5 rounded bg-[#F3F4F6] dark:bg-[#222630] text-[10px] font-mono text-[#9CA3AF]">
                       {snap.tag}
                     </span>
                   </div>
-                ))}
+                )) : <p className="text-xs text-[#9CA3AF]">Belum ada snapshot.</p>}
               </div>
             </div>
 
             {/* Snapshot Baru Button */}
             <div className="pt-2">
               <button
+                disabled={!selectedComp.id}
                 onClick={() => setIsSnapshotModalOpen(true)}
                 className="w-full py-2.5 bg-[#5268D8] hover:bg-[#4154B8] text-white rounded-xl text-xs font-medium flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
               >
@@ -496,6 +430,12 @@ export const CompetitorsPage: React.FC = () => {
               </button>
             </div>
           </div>
+          ) : (
+            <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#272B35] bg-white dark:bg-[#161922] p-6 text-center space-y-3">
+              <p className="text-xs text-[#68717E]">Belum ada kompetitor pada brand ini.</p>
+              <button type="button" onClick={() => setIsAddModalOpen(true)} className="px-3 py-2 rounded-lg bg-[#5268D8] text-white text-xs font-semibold">Tambah kompetitor</button>
+            </div>
+          )}
         </div>
       </div>
 

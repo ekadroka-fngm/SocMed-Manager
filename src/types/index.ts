@@ -40,6 +40,7 @@ export interface Workspace {
   name: string;
   plan: 'Private Dual-Seat' | 'Private · 2 members' | string;
   users: User[];
+  timezone?: string;
   createdAt: string;
 }
 
@@ -141,7 +142,7 @@ export interface IdeaItem {
   tone?: string;
   referenceUrl?: string;
   hypothesis?: string;
-  status: 'IDEA' | 'SAVED' | 'CONVERTED' | 'NEW';
+  status: 'IDEA' | 'SAVED' | 'CONVERTED' | 'NEW' | 'ARCHIVED';
   convertedContentId?: string;
   createdAt: string;
 }
@@ -163,6 +164,9 @@ export interface ContentVersion {
   title?: string;
   hook?: string;
   caption?: string;
+  cta?: string;
+  hashtags?: string[];
+  storytelling?: StorytellingFlow;
   changeNote?: string;
 }
 
