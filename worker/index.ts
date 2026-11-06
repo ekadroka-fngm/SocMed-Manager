@@ -409,7 +409,8 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
           COALESCE(s.data_retention, '12 bulan') AS data_retention,
           COALESCE(s.background_ai_provider, 'Gemini adapter') AS background_ai_provider,
           COALESCE(s.reduced_motion, 0) AS reduced_motion,
-          COALESCE(s.focus_visible, 1) AS focus_visible
+          COALESCE(s.focus_visible, 1) AS focus_visible,
+          COALESCE(s.notifications_enabled, 1) AS notifications_enabled
         FROM workspaces w
         LEFT JOIN workspace_settings s ON s.workspace_id = w.id
         WHERE w.id = ?
@@ -427,7 +428,8 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
       dataRetention: result.data_retention,
       backgroundAiProvider: result.background_ai_provider,
       reducedMotion: result.reduced_motion === 1,
-      focusVisible: result.focus_visible === 1
+      focusVisible: result.focus_visible === 1,
+      notificationsEnabled: result.notifications_enabled === 1
     });
   }
 
@@ -444,6 +446,7 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     const backgroundAiProvider = optionalText(body?.backgroundAiProvider, 80);
     const reducedMotion = body?.reducedMotion === true ? 1 : 0;
     const focusVisible = body?.focusVisible === false ? 0 : 1;
+    const notificationsEnabled = body?.notificationsEnabled === false ? 0 : 1;
 
     if (!workspaceName || !timezone || !language || !dataRetention || !backgroundAiProvider) {
       throw new ApiError(400, 'Nama workspace, zona waktu, bahasa, retensi, dan provider wajib diisi.');
@@ -461,14 +464,15 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     await env.DB
       .prepare(
         `INSERT INTO workspace_settings
-          (workspace_id, language, data_retention, background_ai_provider, reduced_motion, focus_visible)
-         VALUES (?, ?, ?, ?, ?, ?)
+          (workspace_id, language, data_retention, background_ai_provider, reduced_motion, focus_visible, notifications_enabled)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(workspace_id) DO UPDATE SET
           language = excluded.language,
           data_retention = excluded.data_retention,
           background_ai_provider = excluded.background_ai_provider,
           reduced_motion = excluded.reduced_motion,
           focus_visible = excluded.focus_visible,
+          notifications_enabled = excluded.notifications_enabled,
           updated_at = CURRENT_TIMESTAMP`
       )
       .bind(
@@ -477,7 +481,8 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
         dataRetention,
         backgroundAiProvider,
         reducedMotion,
-        focusVisible
+        focusVisible,
+        notificationsEnabled
       )
       .run();
 
@@ -488,7 +493,8 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
       dataRetention,
       backgroundAiProvider,
       reducedMotion: reducedMotion === 1,
-      focusVisible: focusVisible === 1
+      focusVisible: focusVisible === 1,
+      notificationsEnabled: notificationsEnabled === 1
     });
 
     return json({
@@ -498,7 +504,8 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
       dataRetention,
       backgroundAiProvider,
       reducedMotion: reducedMotion === 1,
-      focusVisible: focusVisible === 1
+      focusVisible: focusVisible === 1,
+      notificationsEnabled: notificationsEnabled === 1
     });
   }
 
