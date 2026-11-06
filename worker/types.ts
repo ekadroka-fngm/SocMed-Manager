@@ -31,6 +31,8 @@ export interface Env {
   APP_ENV?: string;
   ACCESS_TEAM_DOMAIN?: string;
   ACCESS_AUD?: string;
+  OPENAI_API_KEY?: string;
+  OPENAI_MODEL?: string;
   LOCAL_DEV_AUTH?: string;
   LOCAL_DEV_EMAIL?: string;
 }
