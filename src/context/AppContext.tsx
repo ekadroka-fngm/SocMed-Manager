@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   Brand,
   Campaign,
@@ -182,6 +182,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .filter((j): j is PublishingJob => j !== null);
   });
 
+  // Cloud-backed workspace data. Initial demo data is bootstrapped once per workspace;
+  // subsequent mutations are persisted with optimistic revision checks.
+  type WorkspaceAppState = {
+    brands: Brand[];
+    campaigns: Campaign[];
+    contentItems: ContentItem[];
+    ideas: IdeaItem[];
+    competitors: Competitor[];
+    integrations: SocialIntegration[];
+    publishingJobs: PublishingJob[];
+    auditLogs: AuditLogItem[];
+  };
+
+  const [isAppStateReady, setIsAppStateReady] = useState(false);
+  const appStateRevisionRef = useRef(0);
+  const appStateHydratedRef = useRef(false);
+  const appStateSaveInFlightRef = useRef(false);
+  const appStateSavePendingRef = useRef(false);
+  const appStateErrorShownRef = useRef(false);
+
+  const latestAppStateRef = useRef<WorkspaceAppState>({
+    brands,
+    campaigns,
+    contentItems,
+    ideas,
+    competitors,
+    integrations,
+    publishingJobs,
+    auditLogs
+  });
+  latestAppStateRef.current = {
+    brands,
+    campaigns,
+    contentItems,
+    ideas,
+    competitors,
+    integrations,
+    publishingJobs,
+    auditLogs
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
@@ -210,6 +251,143 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setToastMessage(prev => (prev === msg ? null : prev));
     }, 4000);
   };
+
+  const applyWorkspaceAppState = (snapshot: Partial<WorkspaceAppState>) => {
+    if (Array.isArray(snapshot.brands)) {
+      setBrands(snapshot.brands);
+      setActiveBrandId(snapshot.brands[0]?.id || '');
+    }
+    if (Array.isArray(snapshot.campaigns)) {
+      setCampaigns(snapshot.campaigns);
+      setSelectedCampaignId(snapshot.campaigns[0]?.id || null);
+    }
+    if (Array.isArray(snapshot.contentItems)) {
+      setContentItems(snapshot.contentItems);
+      setSelectedContentId(snapshot.contentItems[0]?.id || null);
+    }
+    if (Array.isArray(snapshot.ideas)) setIdeas(snapshot.ideas);
+    if (Array.isArray(snapshot.competitors)) setCompetitors(snapshot.competitors);
+    if (Array.isArray(snapshot.integrations)) setIntegrations(snapshot.integrations);
+    if (Array.isArray(snapshot.publishingJobs)) setPublishingJobs(snapshot.publishingJobs);
+    if (Array.isArray(snapshot.auditLogs)) setAuditLogs(snapshot.auditLogs);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const initializeWorkspaceData = async () => {
+      try {
+        const response = await fetch('/api/v1/app-state');
+        const result = await response.json().catch(() => ({})) as {
+          revision?: number;
+          state?: Partial<WorkspaceAppState> | null;
+          error?: string;
+        };
+        if (!response.ok) throw new Error(result.error || `Gagal memuat data workspace (HTTP ${response.status}).`);
+        if (cancelled) return;
+
+        if (result.state) {
+          applyWorkspaceAppState(result.state);
+          appStateRevisionRef.current = Number(result.revision || 0);
+        } else {
+          // First workspace visit: seed the cloud store with the current starter dataset.
+          const bootstrap = await fetch('/api/v1/app-state', {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              expectedRevision: 0,
+              state: latestAppStateRef.current
+            })
+          });
+          const saved = await bootstrap.json().catch(() => ({})) as { revision?: number; error?: string };
+          if (!bootstrap.ok) throw new Error(saved.error || `Gagal menyiapkan data workspace (HTTP ${bootstrap.status}).`);
+          appStateRevisionRef.current = Number(saved.revision || 1);
+        }
+
+        appStateHydratedRef.current = true;
+        setIsAppStateReady(true);
+      } catch (error) {
+        if (cancelled) return;
+        appStateHydratedRef.current = false;
+        setIsAppStateReady(false);
+        showToast(error instanceof Error
+          ? `${error.message} Data saat ini hanya tersedia di sesi browser.`
+          : 'Cloud sync gagal. Data saat ini hanya tersedia di sesi browser.');
+      }
+    };
+
+    void initializeWorkspaceData();
+    return () => { cancelled = true; };
+  }, []);
+
+  const saveWorkspaceAppState = async (): Promise<void> => {
+    if (!appStateHydratedRef.current) return;
+    if (appStateSaveInFlightRef.current) {
+      appStateSavePendingRef.current = true;
+      return;
+    }
+
+    appStateSaveInFlightRef.current = true;
+    try {
+      do {
+        appStateSavePendingRef.current = false;
+        const response = await fetch('/api/v1/app-state', {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            expectedRevision: appStateRevisionRef.current,
+            state: latestAppStateRef.current
+          })
+        });
+        const result = await response.json().catch(() => ({})) as { revision?: number; error?: string };
+        if (response.status === 409) {
+          const latest = await fetch('/api/v1/app-state');
+          const remote = await latest.json().catch(() => ({})) as {
+            revision?: number;
+            state?: Partial<WorkspaceAppState> | null;
+          };
+          if (latest.ok && remote.state) {
+            appStateRevisionRef.current = Number(remote.revision || 0);
+            applyWorkspaceAppState(remote.state);
+          }
+          showToast(result.error || 'Data workspace berubah di perangkat lain. Data terbaru dimuat ulang.');
+          break;
+        }
+        if (!response.ok) throw new Error(result.error || `Gagal menyimpan data workspace (HTTP ${response.status}).`);
+        appStateRevisionRef.current = Number(result.revision || appStateRevisionRef.current + 1);
+        appStateErrorShownRef.current = false;
+      } while (appStateSavePendingRef.current);
+    } catch (error) {
+      if (!appStateErrorShownRef.current) {
+        showToast(error instanceof Error ? error.message : 'Cloud sync gagal menyimpan perubahan.');
+        appStateErrorShownRef.current = true;
+      }
+    } finally {
+      appStateSaveInFlightRef.current = false;
+      if (appStateSavePendingRef.current) {
+        appStateSavePendingRef.current = false;
+        void saveWorkspaceAppState();
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!isAppStateReady || !appStateHydratedRef.current) return;
+    const timer = window.setTimeout(() => {
+      void saveWorkspaceAppState();
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [
+    isAppStateReady,
+    brands,
+    campaigns,
+    contentItems,
+    ideas,
+    competitors,
+    integrations,
+    publishingJobs,
+    auditLogs
+  ]);
 
   // Sync theme to document element
   useEffect(() => {
