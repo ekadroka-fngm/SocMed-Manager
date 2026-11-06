@@ -163,6 +163,9 @@ export interface ContentVersion {
   title?: string;
   hook?: string;
   caption?: string;
+  cta?: string;
+  hashtags?: string[];
+  storytelling?: StorytellingFlow;
   changeNote?: string;
 }
 
