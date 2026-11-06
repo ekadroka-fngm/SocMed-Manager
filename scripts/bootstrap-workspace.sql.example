@@ -1,0 +1,16 @@
+-- Replace the example emails before applying this file to a REMOTE database.
+-- The Access application should allow only these same two email addresses.
+-- Do not apply this template to the local database; local dev has its own seed file.
+
+INSERT INTO workspaces (id, name, timezone)
+VALUES ('workspace_main', 'SocMed Manager', 'Asia/Jakarta');
+
+INSERT INTO workspace_members
+  (id, workspace_id, email, display_name, role, status)
+VALUES
+  ('member_owner', 'workspace_main', 'owner@example.com', 'Workspace Owner', 'OWNER', 'ACTIVE');
+
+INSERT INTO workspace_members
+  (id, workspace_id, email, display_name, role, status)
+VALUES
+  ('member_editor', 'workspace_main', 'editor@example.com', 'Workspace Editor', 'EDITOR', 'ACTIVE');
