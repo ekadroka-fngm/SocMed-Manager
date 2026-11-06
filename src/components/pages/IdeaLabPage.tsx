@@ -17,15 +17,6 @@ export const IdeaLabPage: React.FC = () => {
   const brandIdeas = ideas.filter(i => i.brandId === activeBrand.id);
   const getIdeaPillarName = (idea: IdeaItem) =>
     activeBrand.pillars.find(pillar => pillar.id === idea.contentPillarId)?.name || 'Tanpa pillar';
-  const filteredIdeas = brandIdeas.filter(idea => {
-    const matchesPillar = pillarFilter === 'all' || getIdeaPillarName(idea) === pillarFilter;
-    if (!matchesPillar) return false;
-    if (activeTab === 'new') return idea.status === 'NEW' || idea.status === 'IDEA';
-    if (activeTab === 'saved') return idea.status === 'SAVED';
-    if (activeTab === 'archived') return idea.status === 'ARCHIVED';
-    return idea.status !== 'ARCHIVED';
-  });
-
   const [activeTab, setActiveTab] = useState<'all' | 'new' | 'saved' | 'archived'>('all');
   const [topic, setTopic] = useState('Single origin Gayo');
   const [selectedObjective, setSelectedObjective] = useState('Consideration');
@@ -118,6 +109,15 @@ export const IdeaLabPage: React.FC = () => {
 
   const [pillarFilter, setPillarFilter] = useState('all');
   const [isPillarDropdownOpen, setIsPillarDropdownOpen] = useState(false);
+
+  const filteredIdeas = brandIdeas.filter(idea => {
+    const matchesPillar = pillarFilter === 'all' || getIdeaPillarName(idea) === pillarFilter;
+    if (!matchesPillar) return false;
+    if (activeTab === 'new') return idea.status === 'NEW' || idea.status === 'IDEA';
+    if (activeTab === 'saved') return idea.status === 'SAVED';
+    if (activeTab === 'archived') return idea.status === 'ARCHIVED';
+    return idea.status !== 'ARCHIVED';
+  });
 
   return (
     <div className="space-y-5">
