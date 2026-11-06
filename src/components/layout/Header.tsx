@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Search, ChevronRight, Bell, HelpCircle } from 'lucide-react';
+import { Search, ChevronRight, Bell, HelpCircle, FileText, Lightbulb, Target, Tag, X } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -9,8 +9,67 @@ export const Header: React.FC = () => {
     setSearchQuery,
     navigateTo,
     currentUser,
-    workspace
+    workspace,
+    brands,
+    campaigns,
+    contentItems,
+    ideas,
+    switchBrand
   } = useApp();
+
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const searchResults = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return [];
+
+    const results: Array<{ id: string; title: string; detail: string; icon: React.ReactNode; select: () => void }> = [];
+    brands.filter(item => item.name.toLowerCase().includes(query) || item.category.toLowerCase().includes(query))
+      .slice(0, 4).forEach(item => results.push({
+        id: `brand-${item.id}`, title: item.name, detail: `Brand · ${item.category}`,
+        icon: <Tag className="w-3.5 h-3.5"/>,
+        select: () => { switchBrand(item.id); navigateTo('brands'); }
+      }));
+    campaigns.filter(item => item.name.toLowerCase().includes(query) || item.objective.toLowerCase().includes(query))
+      .slice(0, 4).forEach(item => results.push({
+        id: `campaign-${item.id}`, title: item.name, detail: 'Campaign',
+        icon: <Target className="w-3.5 h-3.5"/>,
+        select: () => navigateTo('campaigns', { campaignId: item.id })
+      }));
+    contentItems.filter(item => item.title.toLowerCase().includes(query) || item.hook.toLowerCase().includes(query))
+      .slice(0, 5).forEach(item => results.push({
+        id: `content-${item.id}`, title: item.title, detail: `Konten · ${item.status}`,
+        icon: <FileText className="w-3.5 h-3.5"/>,
+        select: () => navigateTo('creative', { contentId: item.id })
+      }));
+    ideas.filter(item => item.title.toLowerCase().includes(query) || (item.topic || '').toLowerCase().includes(query))
+      .slice(0, 4).forEach(item => results.push({
+        id: `idea-${item.id}`, title: item.title, detail: `Ide · ${item.funnelStage}`,
+        icon: <Lightbulb className="w-3.5 h-3.5"/>,
+        select: () => navigateTo('ideas')
+      }));
+    return results.slice(0, 10);
+  }, [searchQuery, brands, campaigns, contentItems, ideas, switchBrand, navigateTo]);
+
+  const selectSearchResult = (result: (typeof searchResults)[number]) => {
+    result.select();
+    setSearchQuery('');
+    setIsSearchOpen(false);
+  };
+
+  useEffect(() => {
+    const onShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setIsSearchOpen(true);
+        window.setTimeout(() => searchInputRef.current?.focus(), 0);
+      }
+      if (event.key === 'Escape') setIsSearchOpen(false);
+    };
+    window.addEventListener('keydown', onShortcut);
+    return () => window.removeEventListener('keydown', onShortcut);
+  }, []);
 
   const pageTitles: Record<string, string> = {
     overview: 'Overview',
@@ -44,20 +103,36 @@ export const Header: React.FC = () => {
       </div>
 
       {/* 2. Global Search */}
-      <div className="hidden md:flex items-center flex-1 max-w-sm mx-4">
+      <div className="hidden md:flex items-center flex-1 max-w-md mx-4 relative">
         <div className="relative w-full">
           <Search className="w-3.5 h-3.5 text-[#68717E] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
-            type="text"
+            ref={searchInputRef}
+            type="search"
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Cari workspace..."
+            onFocus={() => setIsSearchOpen(true)}
+            onChange={event => { setSearchQuery(event.target.value); setIsSearchOpen(true); }}
+            onKeyDown={event => {
+              if (event.key === 'Enter' && searchResults[0]) { event.preventDefault(); selectSearchResult(searchResults[0]); }
+            }}
+            placeholder="Cari brand, campaign, konten..."
+            aria-label="Cari brand, campaign, ide, atau konten"
+            aria-expanded={isSearchOpen && Boolean(searchQuery.trim())}
             className="w-full pl-8 pr-10 py-1.5 text-xs bg-neutral-50/80 dark:bg-[#20242D] border border-[#E7E9ED] dark:border-[#2E3442] rounded-[8px] text-[#17191F] dark:text-[#E9EBF0] placeholder-[#68717E] focus:outline-none focus:ring-1 focus:ring-[#5268D8]"
           />
-          <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-mono text-[#68717E] bg-white dark:bg-[#171920] border border-[#E7E9ED] dark:border-[#2E3442] px-1.5 py-0.5 rounded-[4px]">
-            ⌘K
-          </kbd>
+          {searchQuery && <button type="button" onClick={() => {setSearchQuery('');setIsSearchOpen(false);}} aria-label="Hapus pencarian" className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#68717E] hover:text-[#17191F]"><X className="w-3 h-3"/></button>}
+          {!searchQuery && <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-mono text-[#68717E] bg-white dark:bg-[#171920] border border-[#E7E9ED] dark:border-[#2E3442] px-1.5 py-0.5 rounded-[4px]">⌘K</kbd>}
         </div>
+        {isSearchOpen && searchQuery.trim() && (
+          <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl border border-[#E7E9ED] dark:border-[#2E3442] bg-white dark:bg-[#1B1E25] shadow-xl p-1.5 max-h-[360px] overflow-y-auto">
+            {searchResults.length ? searchResults.map(result => (
+              <button key={result.id} type="button" onMouseDown={event => event.preventDefault()} onClick={() => selectSearchResult(result)} className="w-full flex items-center gap-2.5 text-left px-2.5 py-2 rounded-lg hover:bg-neutral-50 dark:hover:bg-[#262B35]">
+                <span className="text-[#5268D8]">{result.icon}</span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium text-[#17191F] dark:text-[#E9EBF0]">{result.title}</span><span className="block text-[10px] text-[#68717E] dark:text-[#9BA3B2]">{result.detail}</span></span>
+              </button>
+            )) : <p className="px-3 py-4 text-xs text-[#68717E]">Tidak ada hasil untuk “{searchQuery}”.</p>}
+          </div>
+        )}
       </div>
 
       {/* 3. Utility Icons: Notifications, Help, User Avatar */}
