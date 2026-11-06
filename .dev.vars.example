@@ -2,3 +2,8 @@
 APP_ENV="development"
 LOCAL_DEV_AUTH="true"
 LOCAL_DEV_EMAIL="owner@local.test"
+
+# Optional: enable the GPT Assistant in local development.
+# Set a real key in your private .dev.vars file; never commit it.
+OPENAI_API_KEY=""
+OPENAI_MODEL="gpt-5.5"
