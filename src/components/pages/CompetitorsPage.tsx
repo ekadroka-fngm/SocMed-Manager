@@ -362,7 +362,7 @@ export const CompetitorsPage: React.FC = () => {
             </div>
 
             {/* Profile URL Box */}
-            <a
+            {selectedComp.profileUrl && <a
               href={selectedComp.profileUrl.startsWith('http') ? selectedComp.profileUrl : `https://${selectedComp.profileUrl}`}
               target="_blank"
               rel="noreferrer"
