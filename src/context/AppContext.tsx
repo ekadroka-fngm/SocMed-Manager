@@ -25,7 +25,7 @@ import {
   INITIAL_AUDIT_LOGS
 } from '../data/mockData';
 import { approveContent, canScheduleContent, handleContentEdit, requestChanges } from '../logic/contentStateMachine';
-import { createPublishingJob, simulateJobExecution } from '../logic/publishingRules';
+import { createPublishingJob } from '../logic/publishingRules';
 
 export type AppPage = 
   | 'overview'
@@ -61,6 +61,8 @@ interface AppContextType {
   selectBrand: (brandId: string) => void;
   brands: Brand[];
   createBrand: (brand: Omit<Brand, 'id' | 'campaignCount' | 'totalFollowers' | 'avgEngagementRate'>) => void;
+  updateBrand: (brandId: string, updates: Partial<Brand>) => void;
+  archiveBrand: (brandId: string) => boolean;
   
   // Campaigns
   campaigns: Campaign[];
@@ -81,6 +83,7 @@ interface AppContextType {
   // Ideas
   ideas: IdeaItem[];
   createIdea: (idea: Omit<IdeaItem, 'id' | 'createdAt' | 'status'>) => void;
+  updateIdeaStatus: (ideaId: string, status: IdeaItem['status']) => void;
   convertIdeaToContentBrief: (ideaId: string) => string; // returns contentId
   
   // Calendar & Publishing
@@ -329,12 +332,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const createIdea = (ideaData: Omit<IdeaItem, 'id' | 'createdAt' | 'status'>) => {
     const newIdea: IdeaItem = {
       ...ideaData,
-      id: `idea_${Date.now()}`,
-      status: 'IDEA',
+      id: `idea_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      status: 'NEW',
       createdAt: new Date().toISOString()
     };
     setIdeas(prev => [newIdea, ...prev]);
     logAudit('IDEA_CREATED', 'CONTENT', newIdea.id, `Logged new idea: "${newIdea.title}"`);
+  };
+
+  const updateIdeaStatus = (ideaId: string, status: IdeaItem['status']) => {
+    const idea = ideas.find(item => item.id === ideaId);
+    if (!idea) {
+      showToast('Ide tidak ditemukan.');
+      return;
+    }
+    if (idea.status === 'CONVERTED' && status !== 'ARCHIVED') {
+      showToast('Ide yang sudah menjadi brief tidak bisa diubah statusnya.');
+      return;
+    }
+    setIdeas(prev => prev.map(item => item.id === ideaId ? { ...item, status } : item));
+    logAudit('IDEA_STATUS_UPDATED', 'CONTENT', ideaId, `Changed idea status from ${idea.status} to ${status}`);
   };
 
   const convertIdeaToContentBrief = (ideaId: string): string => {
@@ -400,28 +417,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const retryPublishingJob = (jobId: string) => {
-    setPublishingJobs(prev => prev.map(job => {
-      if (job.id === jobId) {
-        const retried: PublishingJob = {
-          ...job,
-          retryCount: job.retryCount + 1,
-          status: 'QUEUED',
-          logTrail: [
-            ...job.logTrail,
-            {
-              timestamp: new Date().toISOString(),
-              step: 'JOB_RETRY',
-              status: 'info',
-              details: `Manual retry dispatched (Attempt ${job.retryCount + 1}/${job.maxRetries})`
-            }
-          ]
-        };
-        const { updatedJob } = simulateJobExecution(retried);
-        logAudit('PUBLISHING_RETRY', 'PUBLISHING', jobId, `Retried publishing job ${jobId}`);
-        return updatedJob;
-      }
-      return job;
-    }));
+    const job = publishingJobs.find(item => item.id === jobId);
+    if (!job) {
+      showToast('Job tidak ditemukan. Muat ulang daftar publishing.');
+      return;
+    }
+    if (job.status !== 'FAILED') {
+      showToast('Hanya job dengan status FAILED yang bisa dicoba ulang.');
+      return;
+    }
+    if (job.retryCount >= job.maxRetries) {
+      showToast('Batas percobaan ulang job sudah tercapai.');
+      return;
+    }
+
+    const retried: PublishingJob = {
+      ...job,
+      retryCount: job.retryCount + 1,
+      status: 'QUEUED',
+      lastError: undefined,
+      logTrail: [
+        ...job.logTrail,
+        {
+          timestamp: new Date().toISOString(),
+          step: 'RETRY_QUEUED',
+          status: 'info',
+          details: `Retry request queued locally (Attempt ${job.retryCount + 1}/${job.maxRetries}). A social publishing worker is not connected yet.`
+        }
+      ]
+    };
+
+    setPublishingJobs(prev => prev.map(item => item.id === jobId ? retried : item));
+    logAudit('PUBLISHING_RETRY_QUEUED', 'PUBLISHING', jobId, `Queued retry attempt ${retried.retryCount}; no external publish call was made.`);
+    showToast('Retry masuk antrean lokal. Worker publikasi sosial belum terhubung, jadi konten belum dikirim.');
   };
 
   const cancelPublishingJob = (jobId: string) => {
@@ -449,13 +477,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const createBrand = (brandData: Omit<Brand, 'id' | 'campaignCount' | 'totalFollowers' | 'avgEngagementRate'>) => {
     const newBrand: Brand = {
       ...brandData,
-      id: `brd_${Date.now()}`,
+      id: `brd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       campaignCount: 0,
       totalFollowers: '0',
       avgEngagementRate: '0.0%'
     };
     setBrands(prev => [...prev, newBrand]);
-    logAudit('BRAND_CREATED', 'BRAND', newBrand.id, `Created new brand "${newBrand.name}" in workspace`);
+    logAudit('BRAND_CREATED', 'BRAND', newBrand.id, `Created new brand "${newBrand.name}" in workspace session`);
+  };
+
+  const updateBrand = (brandId: string, updates: Partial<Brand>) => {
+    const existing = brands.find(brand => brand.id === brandId);
+    if (!existing) {
+      showToast('Brand tidak ditemukan.');
+      return;
+    }
+    setBrands(prev => prev.map(brand => brand.id === brandId ? { ...brand, ...updates } : brand));
+    logAudit('BRAND_UPDATED', 'BRAND', brandId, `Updated brand "${existing.name}"`);
+  };
+
+  const archiveBrand = (brandId: string): boolean => {
+    const brand = brands.find(item => item.id === brandId);
+    if (!brand) {
+      showToast('Brand tidak ditemukan.');
+      return false;
+    }
+    if (brands.length <= 1) {
+      showToast('Minimal satu brand harus tetap aktif di workspace.');
+      return false;
+    }
+
+    const remainingBrands = brands.filter(item => item.id !== brandId);
+    setBrands(remainingBrands);
+    if (activeBrandId === brandId) {
+      setActiveBrandId(remainingBrands[0].id);
+    }
+    logAudit('BRAND_ARCHIVED', 'BRAND', brandId, `Archived brand "${brand.name}" from the active brand list.`);
+    return true;
   };
 
   const createCampaign = (campaignData: Omit<Campaign, 'id' | 'contentItemIds'>) => {
@@ -636,6 +694,8 @@ Our data confirms all linked content follows the **DATA → INSIGHT → STRATEGY
         selectBrand: switchBrand,
         brands,
         createBrand,
+        updateBrand,
+        archiveBrand,
         campaigns,
         selectedCampaignId,
         setSelectedCampaignId,
@@ -650,6 +710,7 @@ Our data confirms all linked content follows the **DATA → INSIGHT → STRATEGY
         createContentItem,
         ideas,
         createIdea,
+        updateIdeaStatus,
         convertIdeaToContentBrief,
         scheduleContentItem,
         publishingJobs,
