@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canTransition, approveContent, handleContentEdit, requestChanges } from './contentStateMachine';
+import { canTransition, canScheduleContent, approveContent, handleContentEdit, requestChanges } from './contentStateMachine';
 import { calculateCampaignFunnel, calculateCampaignProgress } from './campaignFunnel';
 import { isFormatSupportedByPlatform, createPublishingJob } from './publishingRules';
 import { ContentItem, User, Campaign } from '../types';
@@ -53,12 +53,17 @@ test('Content State Machine: Allowed and forbidden transitions', () => {
 });
 
 test('PRD BR-009 & BR-014: Approval workflow and edit invalidation', () => {
+  assert.equal(canScheduleContent({ status: 'DRAFT' }), false, 'DRAFT content must not be schedulable');
+  assert.equal(canScheduleContent({ status: 'IN_REVIEW' }), false, 'IN_REVIEW content must not be schedulable');
+  assert.equal(canScheduleContent({ status: 'CHANGES_REQUESTED' }), false, 'Content with requested changes must not be schedulable');
+  assert.equal(canScheduleContent({ status: 'SCHEDULED' }), false, 'Already scheduled content must not be scheduled again');
   // 1. Approve content
   const approved = approveContent(mockItem, mockUser);
   assert.equal(approved.status, 'APPROVED');
   assert.equal(approved.approvedBy, 'Alex Morgan');
   assert.ok(approved.approvedAt);
   assert.ok(approved.idempotencyKey);
+  assert.equal(canScheduleContent(approved), true, 'Only explicitly approved content is schedulable');
 
   // 2. Edit approved content -> Must invalidate approval and revert to IN_REVIEW (BR-014)
   const { updatedContent, approvalInvalidated } = handleContentEdit(
