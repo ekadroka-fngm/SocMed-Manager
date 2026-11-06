@@ -320,6 +320,109 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     });
   }
 
+  if (url.pathname === '/api/v1/settings' && request.method === 'GET') {
+    const result = await env.DB
+      .prepare(
+        `SELECT
+          w.name AS workspace_name,
+          w.timezone,
+          COALESCE(s.language, 'Bahasa Indonesia') AS language,
+          COALESCE(s.data_retention, '12 bulan') AS data_retention,
+          COALESCE(s.background_ai_provider, 'Gemini adapter') AS background_ai_provider,
+          COALESCE(s.reduced_motion, 0) AS reduced_motion,
+          COALESCE(s.focus_visible, 1) AS focus_visible
+        FROM workspaces w
+        LEFT JOIN workspace_settings s ON s.workspace_id = w.id
+        WHERE w.id = ?
+        LIMIT 1`
+      )
+      .bind(member.workspace_id)
+      .first<Record<string, string | number>>();
+
+    if (!result) throw new ApiError(404, 'Workspace tidak ditemukan.');
+
+    return json({
+      workspaceName: result.workspace_name,
+      timezone: result.timezone,
+      language: result.language,
+      dataRetention: result.data_retention,
+      backgroundAiProvider: result.background_ai_provider,
+      reducedMotion: result.reduced_motion === 1,
+      focusVisible: result.focus_visible === 1
+    });
+  }
+
+  if (url.pathname === '/api/v1/settings' && request.method === 'PUT') {
+    if (member.role !== 'OWNER') {
+      throw new ApiError(403, 'Hanya Owner yang dapat mengubah pengaturan workspace.');
+    }
+
+    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const workspaceName = optionalText(body?.workspaceName, 120);
+    const timezone = optionalText(body?.timezone, 80);
+    const language = optionalText(body?.language, 60);
+    const dataRetention = optionalText(body?.dataRetention, 64);
+    const backgroundAiProvider = optionalText(body?.backgroundAiProvider, 80);
+    const reducedMotion = body?.reducedMotion === true ? 1 : 0;
+    const focusVisible = body?.focusVisible === false ? 0 : 1;
+
+    if (!workspaceName || !timezone || !language || !dataRetention || !backgroundAiProvider) {
+      throw new ApiError(400, 'Nama workspace, zona waktu, bahasa, retensi, dan provider wajib diisi.');
+    }
+
+    await env.DB
+      .prepare(
+        `UPDATE workspaces
+         SET name = ?, timezone = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`
+      )
+      .bind(workspaceName, timezone, member.workspace_id)
+      .run();
+
+    await env.DB
+      .prepare(
+        `INSERT INTO workspace_settings
+          (workspace_id, language, data_retention, background_ai_provider, reduced_motion, focus_visible)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(workspace_id) DO UPDATE SET
+          language = excluded.language,
+          data_retention = excluded.data_retention,
+          background_ai_provider = excluded.background_ai_provider,
+          reduced_motion = excluded.reduced_motion,
+          focus_visible = excluded.focus_visible,
+          updated_at = CURRENT_TIMESTAMP`
+      )
+      .bind(
+        member.workspace_id,
+        language,
+        dataRetention,
+        backgroundAiProvider,
+        reducedMotion,
+        focusVisible
+      )
+      .run();
+
+    await appendAuditLog(env.DB, member, 'WORKSPACE_SETTINGS_UPDATED', 'SECURITY', member.workspace_id, {
+      workspaceName,
+      timezone,
+      language,
+      dataRetention,
+      backgroundAiProvider,
+      reducedMotion: reducedMotion === 1,
+      focusVisible: focusVisible === 1
+    });
+
+    return json({
+      workspaceName,
+      timezone,
+      language,
+      dataRetention,
+      backgroundAiProvider,
+      reducedMotion: reducedMotion === 1,
+      focusVisible: focusVisible === 1
+    });
+  }
+
   if (url.pathname === '/api/v1/brands' && request.method === 'GET') {
     const result = await env.DB
       .prepare(
