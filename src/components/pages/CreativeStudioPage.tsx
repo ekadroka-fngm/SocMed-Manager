@@ -369,7 +369,7 @@ export const CreativeStudioPage: React.FC = () => {
 
           {/* Save Button */}
           <button
-            onClick={handleSave}
+            onClick={() => handleSave()}
             className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white dark:bg-[#1B1E25] hover:bg-neutral-50 dark:hover:bg-[#20242D] border border-[#E7E9ED] dark:border-[#292E38] text-[#17191F] dark:text-[#E9EBF0] rounded-[8px] text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
