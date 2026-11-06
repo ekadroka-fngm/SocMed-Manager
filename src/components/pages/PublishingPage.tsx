@@ -133,10 +133,10 @@ export const PublishingPage: React.FC = () => {
               <button type="button" onClick={() => navigateTo('creative', {contentId:item.id})} className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-[#E7E9ED] dark:border-[#383F4C] text-[10px]">
                 <Eye className="w-3 h-3"/> Pratinjau
               </button>
-              <button type="button" onClick={() => { requestChangesOnItem(item.id, 'Perlu revisi dari reviewer.'); showToast('Permintaan revisi dicatat.'); }} className="px-2.5 py-1.5 rounded-md border border-[#E7C17C] text-[10px] text-[#9A681B]">
+              <button type="button" onClick={() => { const changed = requestChangesOnItem(item.id, 'Perlu revisi dari reviewer.'); if (changed) showToast('Permintaan revisi dicatat.'); }} className="px-2.5 py-1.5 rounded-md border border-[#E7C17C] text-[10px] text-[#9A681B]">
                 Minta revisi
               </button>
-              <button type="button" onClick={() => { approveContentItem(item.id); showToast('Konten disetujui.'); }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#1E8E3E] text-white text-[10px] font-semibold">
+              <button type="button" onClick={() => { const approved = approveContentItem(item.id); if (approved) showToast('Konten disetujui.'); }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#1E8E3E] text-white text-[10px] font-semibold">
                 <Check className="w-3 h-3"/> Setujui
               </button>
             </div>
