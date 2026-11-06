@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   Save,
@@ -38,7 +38,7 @@ export const CreativeStudioPage: React.FC = () => {
     contentItems,
     selectedContent,
     updateContentItem,
-    approveContentItem,
+    submitContentForReview,
     requestChangesOnItem,
     currentUser,
     openScheduleModal,
@@ -47,6 +47,19 @@ export const CreativeStudioPage: React.FC = () => {
 
   const brandItems = contentItems.filter(c => c.brandId === activeBrand.id);
   const currentItem = selectedContent || brandItems[0];
+
+  const versionList = currentItem
+    ? [...currentItem.versions]
+        .sort((a, b) => b.versionNumber - a.versionNumber)
+        .map(version => ({
+          ver: `v${version.versionNumber}`,
+          status: version.versionNumber === currentItem.currentVersion ? currentItem.status : 'HISTORY',
+          label: version.changeNote || version.modifiedAt || version.timestamp || `Versi ${version.versionNumber}`,
+          user: version.author || version.modifiedBy || 'Pengguna',
+          isCurrent: version.versionNumber === currentItem.currentVersion,
+          snapshot: version
+        }))
+    : [];
 
   // Tab & format states
   const [activeTab, setActiveTab] = useState<'brief' | 'editor' | 'preview'>('editor');
@@ -58,6 +71,23 @@ export const CreativeStudioPage: React.FC = () => {
     currentItem?.hook || 'Kamu tahu nggak, biji ini dipetik 12 jam sebelum sampai cangkirmu?'
   );
   const [showAiHookSuggestions, setShowAiHookSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (!currentItem) return;
+    setHookText(currentItem.hook || '');
+    setCaptionText(currentItem.caption || '');
+    setCtaText(currentItem.cta || '');
+    setHashtags(currentItem.hashtags || []);
+    if (currentItem.storytelling) {
+      setStoryBeats([
+        { id: `${currentItem.id}-hook`, tag: 'HOOK', time: '0:00', text: currentItem.storytelling.hook, color: 'text-[#5268D8]' },
+        { id: `${currentItem.id}-problem`, tag: 'PROBLEM', time: '0:03', text: currentItem.storytelling.problem, color: 'text-[#D97706]' },
+        { id: `${currentItem.id}-agitation`, tag: 'AGITATION', time: '0:12', text: currentItem.storytelling.agitation, color: 'text-[#DC2626]' },
+        { id: `${currentItem.id}-solution`, tag: 'SOLUTION', time: '0:22', text: currentItem.storytelling.solution, color: 'text-[#1E8E3E]' },
+        { id: `${currentItem.id}-cta`, tag: 'CTA', time: '0:36', text: currentItem.storytelling.cta, color: 'text-[#5268D8]' }
+      ]);
+    }
+  }, [currentItem?.id]);
 
   // 2. Alur Storytelling (Script Beats) - manual editing + AI assistance
   const [isEditingStoryBeats, setIsEditingStoryBeats] = useState(false);
@@ -117,12 +147,6 @@ export const CreativeStudioPage: React.FC = () => {
     { num: '15', label: 'References', done: false }
   ]);
 
-  // 7. Version History
-  const [versionList, setVersionList] = useState([
-    { ver: 'v3', status: 'IN_REVIEW', label: 'Aktif · 2 Okt 10:12', user: 'Ayu', isCurrent: true },
-    { ver: 'v2', status: 'APPROVED', label: 'Disetujui · 30 Sep 16:40', user: 'Bagas', isCurrent: false },
-    { ver: 'v1', status: 'DRAFT', label: 'Draft awal · 28 Sep 09:05', user: 'Ayu', isCurrent: false }
-  ]);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
 
   if (!currentItem) {
@@ -143,50 +167,83 @@ export const CreativeStudioPage: React.FC = () => {
     );
   };
 
-  const handleSave = () => {
+  const handleSave = (note = 'Pembaruan manual studio') => {
+    const storytelling = {
+      hook: storyBeats.find(beat => beat.tag === 'HOOK')?.text || hookText,
+      problem: storyBeats.find(beat => beat.tag === 'PROBLEM')?.text || '',
+      agitation: storyBeats.find(beat => beat.tag === 'AGITATION')?.text || '',
+      solution: storyBeats.find(beat => beat.tag === 'SOLUTION')?.text || '',
+      cta: storyBeats.find(beat => beat.tag === 'CTA')?.text || ctaText
+    };
+
     updateContentItem(
       currentItem.id,
       {
         hook: hookText,
         caption: captionText,
         cta: ctaText,
-        hashtags: hashtags
+        hashtags,
+        storytelling
       },
-      'Pembaruan manual studio'
+      note
     );
     setSavedNotice(true);
-    showToast('Perubahan konten brief berhasil disimpan.');
-    setTimeout(() => setSavedNotice(false), 2500);
+    showToast('Perubahan brief dan alur storytelling berhasil disimpan.');
+    window.setTimeout(() => setSavedNotice(false), 2500);
   };
 
   const handleSaveNewVersion = () => {
-    const nextVerNum = versionList.length + 1;
-    const newVer = {
-      ver: `v${nextVerNum}`,
-      status: 'IN_REVIEW',
-      label: `Aktif · Baru saja disunting`,
-      user: currentUser.name,
-      isCurrent: true
-    };
-    setVersionList(prev => [
-      newVer,
-      ...prev.map(v => ({ ...v, isCurrent: false }))
-    ]);
-    handleSave();
-    showToast(`Versi baru v${nextVerNum} berhasil dibuat dan disimpan.`);
+    const nextVersion = currentItem.currentVersion + 1;
+    handleSave(`Menyimpan versi v${nextVersion} dari Creative Studio`);
   };
 
   const handleRestoreVersion = (ver: string) => {
-    if (ver === 'v2') {
-      setHookText('Kopi enak tak harus mahal, tapi harus jelas asalnya.');
-      setCaptionText('Panen Gayo kali ini membawa profil rasa manis gula aren dan aroma melati yang khas.');
-      setCtaText('Beli bundling promo minggu ini di toko resmi.');
-    } else if (ver === 'v1') {
-      setHookText('Kenapa rasa kopi seduhan rumahan sering pahit gosong?');
-      setCaptionText('Eksperimen pertama dengan biji single origin Gayo.');
-      setCtaText('Tulis pendapatmu di kolom komentar.');
+    const versionNumber = Number(ver.replace(/^v/, ''));
+    const snapshot = currentItem.versions.find(item => item.versionNumber === versionNumber);
+
+    if (!snapshot) {
+      showToast(`Snapshot ${ver} tidak ditemukan. Versi tidak diubah.`);
+      return;
     }
-    showToast(`Konten brief berhasil dipulihkan ke ${ver}.`);
+
+    const hasRestorableContent = Boolean(
+      snapshot.hook ||
+      snapshot.caption ||
+      snapshot.cta ||
+      snapshot.hashtags ||
+      snapshot.storytelling
+    );
+
+    if (!hasRestorableContent) {
+      showToast(`Versi ${ver} adalah metadata riwayat lama dan belum memiliki snapshot isi yang lengkap.`);
+      return;
+    }
+
+    const restored = {
+      hook: snapshot.hook ?? currentItem.hook,
+      caption: snapshot.caption ?? currentItem.caption,
+      cta: snapshot.cta ?? currentItem.cta,
+      hashtags: snapshot.hashtags ?? currentItem.hashtags,
+      storytelling: snapshot.storytelling ?? currentItem.storytelling
+    };
+
+    setHookText(restored.hook);
+    setCaptionText(restored.caption);
+    setCtaText(restored.cta);
+    setHashtags(restored.hashtags);
+
+    if (restored.storytelling) {
+      setStoryBeats([
+        { id: `restore-${versionNumber}-1`, tag: 'HOOK', time: '0:00', text: restored.storytelling.hook, color: 'text-[#5268D8]' },
+        { id: `restore-${versionNumber}-2`, tag: 'PROBLEM', time: '0:03', text: restored.storytelling.problem, color: 'text-[#D97706]' },
+        { id: `restore-${versionNumber}-3`, tag: 'AGITATION', time: '0:12', text: restored.storytelling.agitation, color: 'text-[#DC2626]' },
+        { id: `restore-${versionNumber}-4`, tag: 'SOLUTION', time: '0:22', text: restored.storytelling.solution, color: 'text-[#1E8E3E]' },
+        { id: `restore-${versionNumber}-5`, tag: 'CTA', time: '0:36', text: restored.storytelling.cta, color: 'text-[#5268D8]' }
+      ]);
+    }
+
+    updateContentItem(currentItem.id, restored, `Pulihkan isi dari ${ver}`);
+    showToast(`Isi ${ver} dimuat dan disimpan sebagai versi baru. Approval perlu dilakukan ulang.`);
   };
 
   // AI Hook suggestions
@@ -328,14 +385,12 @@ export const CreativeStudioPage: React.FC = () => {
 
           {/* Primary Review / Approve Button */}
           <button
-            onClick={() => {
-              approveContentItem(currentItem.id);
-              showToast(`Brief "${currentItem.title}" disetujui (APPROVED).`);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#5268D8] hover:bg-[#4357C5] text-white rounded-[8px] text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            onClick={() => submitContentForReview(currentItem.id)}
+            disabled={currentItem.status === 'IN_REVIEW' || currentItem.status === 'APPROVED' || currentItem.status === 'SCHEDULED' || currentItem.status === 'PUBLISHED'}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#5268D8] hover:bg-[#4357C5] text-white rounded-[8px] text-xs font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-3.5 h-3.5" />
-            <span>Kirim ke review</span>
+            <span>{currentItem.status === 'IN_REVIEW' ? 'Menunggu review' : currentItem.status === 'APPROVED' ? 'Sudah disetujui' : 'Kirim ke review'}</span>
           </button>
         </div>
       </div>
