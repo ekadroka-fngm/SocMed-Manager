@@ -24,7 +24,7 @@ import {
   INITIAL_INTEGRATIONS,
   INITIAL_AUDIT_LOGS
 } from '../data/mockData';
-import { approveContent, handleContentEdit, requestChanges } from '../logic/contentStateMachine';
+import { approveContent, canScheduleContent, handleContentEdit, requestChanges } from '../logic/contentStateMachine';
 import { createPublishingJob, simulateJobExecution } from '../logic/publishingRules';
 
 export type AppPage = 
@@ -84,7 +84,7 @@ interface AppContextType {
   convertIdeaToContentBrief: (ideaId: string) => string; // returns contentId
   
   // Calendar & Publishing
-  scheduleContentItem: (contentId: string, scheduledTime: string, platform: SocialPlatform) => void;
+  scheduleContentItem: (contentId: string, scheduledTime: string, platform: SocialPlatform) => boolean;
   publishingJobs: PublishingJob[];
   retryPublishingJob: (jobId: string) => void;
   cancelPublishingJob: (jobId: string) => void;
