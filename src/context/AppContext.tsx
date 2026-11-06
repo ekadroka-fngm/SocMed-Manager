@@ -367,30 +367,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newContent.id;
   };
 
-  const scheduleContentItem = (contentId: string, scheduledTime: string, platform: SocialPlatform) => {
+  const scheduleContentItem = (contentId: string, scheduledTime: string, platform: SocialPlatform): boolean => {
     const item = contentItems.find(c => c.id === contentId);
-    if (!item) return;
-
-    if (item.status !== 'APPROVED') {
-      showToast(`Approval required: Content must be APPROVED before scheduling (PRD BR-009). Current status is ${item.status}.`);
-      return;
+    if (!item) {
+      showToast('Konten tidak ditemukan. Muat ulang halaman lalu coba lagi.');
+      return false;
     }
 
-    const updatedItem: ContentItem = {
-      ...item,
-      status: 'SCHEDULED',
-      scheduledFor: scheduledTime
-    };
+    // BR-009: Scheduling must never create approval as a side effect.
+    if (!canScheduleContent(item)) {
+      showToast(`Approval wajib dilakukan sebelum scheduling. Status konten saat ini: ${item.status}.`);
+      return false;
+    }
 
-    setContentItems(prev => prev.map(c => c.id === contentId ? updatedItem : c));
-
-    // Create or update publishing job
     try {
+      const updatedItem: ContentItem = {
+        ...item,
+        status: 'SCHEDULED',
+        scheduledFor: scheduledTime
+      };
       const job = createPublishingJob(updatedItem, platform);
+
+      // Update state only after job validation succeeds.
+      setContentItems(prev => prev.map(c => c.id === contentId ? updatedItem : c));
       setPublishingJobs(prev => [job, ...prev.filter(j => j.contentId !== contentId)]);
       logAudit('CONTENT_SCHEDULED', 'PUBLISHING', contentId, `Scheduled "${item.title}" for ${new Date(scheduledTime).toLocaleString()} on ${platform}`);
+      return true;
     } catch (err: unknown) {
-      showToast((err as Error).message);
+      showToast(err instanceof Error ? err.message : 'Gagal membuat jadwal konten.');
+      return false;
     }
   };
 
